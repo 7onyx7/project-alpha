@@ -1,6 +1,12 @@
+<!--****************** Author: Romeo Shamoun                     ******************-->
+<!--****************** Date: 12/12/2024                          ******************-->
+<!--****************** Version: 0.2                              ******************-->
+<!--****************** Description: Login Screen Authentication  ******************-->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
         body {
@@ -17,9 +23,12 @@
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
         }
         .login-container h2 {
             margin-bottom: 20px;
+            text-align: center;
         }
         .login-container input[type="text"],
         .login-container input[type="password"] {
@@ -41,6 +50,11 @@
         .login-container button:hover {
             background-color: #45a049;
         }
+        #errorMessage {
+            color: red;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -49,18 +63,38 @@
         <form id="loginForm">
             <input type="text" id="username" placeholder="Username" required>
             <input type="password" id="password" placeholder="Password" required>
+            <p id="errorMessage">Invalid username or password</p>
             <button type="submit">Login</button>
         </form>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            console.log('Username:', username);
-            console.log('Password:', password);
-            // Add your authentication logic here
+            const errorMessage = document.getElementById('errorMessage');
+
+            try {
+                // Simulate API call (replace with your actual API endpoint)
+                const response = await fetch('https://your-backend-api.com/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                if (response.ok) {
+                    errorMessage.style.display = 'none';
+                    alert('Login Successful!');
+                } else {
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Invalid username or password';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'An error occurred. Please try again.';
+            }
         });
     </script>
 </body>
