@@ -7,3 +7,8 @@ Thumbs.db
 
 # Logs and temp files
 *.log
+
+# PostgreSQL database files
+/data/
+*.backup
+*.dump
