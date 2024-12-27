@@ -1,0 +1,24 @@
+# Node modules (if you use Node.js later)
+node_modules/
+
+# Ignore vscode settings
+.vscode/
+
+# Ignore environment variables and sensitive files
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# PostgreSQL database files
+/data/
+*.backup
+*.dump
