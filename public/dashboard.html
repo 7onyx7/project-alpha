@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        .container {
+            margin: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Welcome to Your Dashboard</h1>
+        <div id="dashboardData"></div>
+    </header>
+
+    <div class="container">
+        <p id="welcomeMessage">Loading...</p>
+        <button id="logoutButton">Logout</button>
+    </div>
+
+    <script>
+        // 1) Get the token from localStorage
+        const token = localStorage.getItem('token');
+    
+        // 2) If no token, redirect to login (index.html)
+        if (!token) {
+          window.location.href = '/'; // or wherever your login page is
+        } else {
+          // 3) Make a protected request to fetch user data
+          fetch('/api/dashboard-data', {
+            headers: {
+              'Authorization': `Bearer ${token}`, // Bearer scheme
+            },
+          })
+            .then(response => response.json())
+            .then(data => {
+              const dashboardDataDiv = document.getElementById('dashboardData');
+              if (data.success) {
+                dashboardDataDiv.textContent = `Hello, ${data.user.username}!`;
+              } else {
+                // If something went wrong, display the error
+                dashboardDataDiv.textContent = data.message || 'Error fetching data.';
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching dashboard data:', error);
+            });
+        }
+      </script>
+    </body>
+    </html>

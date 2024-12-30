@@ -66,48 +66,44 @@
         <form id="loginForm">
             <input type="text" id="username" placeholder="Username" required>
             <input type="password" id="password" placeholder="Password" required>
-            <p id="errorMessage">Invalid username or password</p>
+            <p id="errorMessage">Invalid username or password.</p>
             <button type="submit">Login</button>
         </form>
     </div>
 
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const errorMessage = document.getElementById('errorMessage');
-
-            try 
-            {
-                // Send the login request to your backend endpoint
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password }),
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    errorMessage.style.display = 'none';
-                    alert('Login Successful!');
-                } else {
-                    errorMessage.style.display = 'block';
-                    errorMessage.textContent = result.message || 'Invalid username or password';
-                }
+          event.preventDefault();
+          const username = document.getElementById('username').value.trim();
+          const password = document.getElementById('password').value.trim();
+          const errorMessage = document.getElementById('errorMessage');
+      
+          try {
+            const response = await fetch('/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, password }),
+            });
+      
+            const result = await response.json();
+      
+            if (response.ok && result.success) {
+              // Store JWT token
+              localStorage.setItem('token', result.token);
+      
+              // Redirect to the dashboard
+              window.location.href = '/dashboard';
+            } else {
+              errorMessage.style.display = 'block';
+              errorMessage.textContent = result.message || 'Invalid username or password';
             }
-
-            catch (error) 
-            {
-                console.error('Error:', error);
-                errorMessage.style.display = 'block';
-                errorMessage.textContent = 'An error occurred. Please try again.';
-            }
-
+      
+          } catch (error) {
+            console.error('Error:', error);
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = 'An error occurred. Please try again.';
+          }
         });
-
-    </script>
+      </script>
 </body>
 </html>
