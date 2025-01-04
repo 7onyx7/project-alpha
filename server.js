@@ -95,35 +95,60 @@ app.post('/login', async (req, res) => {
 /* 2) Existing "register" endpoint */
 /**********************************/
 app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-  console.log('POST /register route hit with data:', { username, password });
+  const { firstName, lastName, email, username, password } = req.body;
+  console.log('POST /register route hit with data:', { firstName, lastName, email, username, password });
+
+  if(!firstName || !lastName || !email || !username || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required!'
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+  }
+
+  // Simple email pattern check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format.' });
+  }
 
   try {
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username and password are required!' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long!' });
-    }
-
-    const userExists = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const userExists = await pool.query(
+      'SELECT * FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+    
     if (userExists.rows.length > 0) {
-      return res.status(409).json({ success: false, message: 'Username already exists!' });
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Username already exists!' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    
     const result = await pool.query(
-      'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *',
-      [username, hashedPassword]
+      'INSERT INTO users (first_name, last_name, email, username, password) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, email, username',
+      [firstName, lastName, email, username, hashedPassword]
     );
 
-    const user = result.rows[0];
-    delete user.password; // Remove password field from the response
+    const newUser = result.rows[0];
+    
 
-    return res.status(201).json({ success: true, message: 'User created successfully!', user });
+    return res.status(201).json({ 
+      success: true, 
+      message: 'User created successfully!', 
+      user: newUser 
+    });
+
   } catch (err) {
     console.error('Error querying the database:', err);
-    return res.status(500).json({ success: false, message: 'Internal server error!' });
+    return res.status(500).json({
+      success: false, 
+      message: 'Internal server error!' 
+    });
   }
 });
 

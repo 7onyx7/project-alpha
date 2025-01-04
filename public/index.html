@@ -1,4 +1,4 @@
-<!--****************** Author: Romeo Shamoun                     ******************-->
+<!--****************** Author: Romeo Shamoun                     ******************--> 
 <!--****************** Date: 12/25/2024                          ******************-->
 <!--****************** Version: 0.3                              ******************-->
 <!--****************** Description: Login Screen Authentication  ******************-->
@@ -7,103 +7,334 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        .login-container h2 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .login-container input[type="text"],
-        .login-container input[type="password"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            padding-right: 15px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .login-container button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .login-container button:hover {
-            background-color: #45a049;
-        }
-        #errorMessage {
-            color: red;
-            text-align: center;
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    .login-container h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .login-container input[type="text"],
+    .login-container input[type="password"] {
+      width: calc(100% - 20px);
+      padding: 10px;
+      padding-right: 15px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background-color: #45a049;
+    }
+    #errorMessage {
+      color: red;
+      text-align: center;
+      display: none;
+    }
+    .register-container, a {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      text-decoration: none;
+    }
+    .register-container #register {
+      text-align: center;
+      cursor: pointer;
+      color: blue;
+    }
+    #registerModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 5% auto;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    #closeModal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      color: #333;
+    }
+
+    #registerForm {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    #registerForm input {
+      margin: 8px 10px 8px 0;
+      width: calc(100% - 10px);
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    #registerForm button {
+      margin-top: 12px;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #registerForm button:hover {
+      background-color: #45a049;
+    }
+
+    #registerError {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #strengthMeter {
+      display: inline-block;
+      white-space: nowrap;
+      margin-left: 8px;
+      font-weight: bold;
+    }
+
+  </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Project Alpha</h2>
-        <form id="loginForm">
-            <input type="text" id="username" placeholder="Username" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <p id="errorMessage">Invalid username or password.</p>
-            <button type="submit">Login</button>
-        </form>
-    </div>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(event) {
-          event.preventDefault();
-          const username = document.getElementById('username').value.trim();
-          const password = document.getElementById('password').value.trim();
-          const errorMessage = document.getElementById('errorMessage');
-      
-          try {
-            const response = await fetch('/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username, password }),
-            });
-      
-            const result = await response.json();
-      
-            if (response.ok && result.success) {
-              // Store JWT token
-              localStorage.setItem('token', result.token);
-      
-              // Redirect to the dashboard
-              window.location.href = '/dashboard';
-            } else {
-              errorMessage.style.display = 'block';
-              errorMessage.textContent = result.message || 'Invalid username or password';
-            }
-      
-          } catch (error) {
-            console.error('Error:', error);
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = 'An error occurred. Please try again.';
-          }
+  <div class="login-container">
+    <h2>Project Alpha</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <p id="errorMessage">Invalid username or password.</p>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <a href="/register" id="createAccountLink">Create Account</a>
+
+  <!-- This div is hidden by default -->
+  <div id="registerModal">
+    <div class="modal-content">
+      <span id="closeModal">&times;</span> <!-- 'X' to close the modal -->
+      <h2>Create Account</h2>
+
+      <!-- Register Modal -->
+      <form id="registerForm">
+        <input type="text" id="firstName" placeholder="First Name" required>
+        <input type="text" id="lastName" placeholder="Last Name" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="text" id="regUsername" placeholder="Username" required>
+        <input type="password" id="regPassword" placeholder="Password" required>
+        <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+        <span id="strengthMeter">-</span>
+
+        <button type="submit">Register</button>
+      </form>
+      <p id="registerError"></p>
+    </div>
+  </div>
+
+  <script>
+    /********************************************************/
+    /*                   LOGIN HANDLER                     */
+    /********************************************************/
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMessage = document.getElementById('errorMessage');
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
         });
-      </script>
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          localStorage.setItem('token', result.token);
+          window.location.href = '/dashboard';
+        } else {
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = result.message || 'Invalid username or password';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = 'An error occurred. Please try again.';
+      }
+    });
+
+    /********************************************************/
+    /*               SHOW/HIDE REGISTER MODAL              */
+    /********************************************************/
+    const createAccountLink = document.getElementById('createAccountLink');
+    const registerModal = document.getElementById('registerModal');
+    const closeModal = document.getElementById('closeModal');
+
+    createAccountLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      registerModal.style.display = 'block';
+    });
+
+    closeModal.addEventListener('click', () => {
+      registerModal.style.display = 'none';
+    });
+
+    /********************************************************/
+    /*           PASSWORD STRENGTH METER (LIVE)            */
+    /********************************************************/
+    const passwordInput = document.getElementById('regPassword');
+    const strengthMeter = document.getElementById('strengthMeter');
+
+    // Update strength meter on each keystroke
+    passwordInput.addEventListener('input', function () {
+      const val = passwordInput.value;
+      let score = 0;
+
+      if (val.length >= 6) score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+      switch (score) {
+        case 0:
+        case 1:
+          strengthMeter.textContent = 'Weak';
+          strengthMeter.style.color = 'red';
+          break;
+        case 2:
+        case 3:
+          strengthMeter.textContent = 'Medium';
+          strengthMeter.style.color = 'orange';
+          break;
+        case 4:
+        case 5:
+          strengthMeter.textContent = 'Strong';
+          strengthMeter.style.color = 'green';
+          break;
+      }
+    });
+
+    /********************************************************/
+    /*               REGISTER FORM HANDLER                 */
+    /********************************************************/
+    const registerForm = document.getElementById('registerForm');
+    const registerError = document.getElementById('registerError');
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Grab values
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName  = document.getElementById('lastName').value.trim();
+      const email     = document.getElementById('email').value.trim();
+      const registerUsername  = document.getElementById('regUsername').value.trim();
+      const password  = passwordInput.value.trim();
+      const confirmPass  = document.getElementById('confirmPassword').value.trim();
+
+      // Client-side validation
+      if (password.length < 6) {
+        registerError.textContent = 'Password must be at least 6 characters.';
+        registerError.style.display = 'block';
+        return;
+      }
+
+      if (password !== confirmPass) {
+        registerError.textContent = 'Passwords do not match';
+        registerError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            firstName, 
+            lastName, 
+            email, 
+            username: registerUsername, 
+            password 
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          registerError.style.display = 'none';
+          alert('Account created successfully!');
+          registerModal.style.display = 'none';
+          registerForm.reset();
+        } else {
+          registerError.textContent = data.message || 'Registration failed';
+          registerError.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        registerError.textContent = 'An error occurred. Please try again.';
+        registerError.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
