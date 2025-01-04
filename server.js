@@ -184,14 +184,18 @@ app.get('/dashboard', (req, res) => {
 /*****************************************************************************************/
 app.get('/api/dashboard-data', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id; // from the decoded JWT
-    const result = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+    const userId = req.user.id; // Extracted from the decoded JWT
+
+    // Fetch both username and email from the database
+    const query = 'SELECT username, email FROM users WHERE id = $1';
+    const result = await pool.query(query, [userId]);
 
     if (result.rows.length > 0) {
+      // Combine fetched user data into the response
       return res.status(200).json({
         success: true,
         message: 'Fetched dashboard data successfully!',
-        user: result.rows[0],
+        user: result.rows[0], // Includes username and email
       });
     } else {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -201,6 +205,7 @@ app.get('/api/dashboard-data', authenticateToken, async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
+
 
 /*****************/
 /* Start the App */
