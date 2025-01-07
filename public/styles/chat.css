@@ -1,0 +1,145 @@
+/* Overall Page Style */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(120deg, #4a90e2, #9013fe);
+  color: #fff;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #333;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* Header Section */
+.chat-header {
+  background: #4a90e2;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+/* Chat Body */
+.chat-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Messages Section */
+.chat-messages {
+  flex: 3;
+  padding: 10px;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-messages .message {
+  padding: 10px;
+  border-radius: 5px;
+  max-width: 80%;
+}
+
+.chat-messages .message.sent {
+  background: #4a90e2;
+  color: #fff;
+  align-self: flex-end;
+}
+
+.chat-messages .message.received {
+  background: #ddd;
+  color: #333;
+  align-self: flex-start;
+}
+
+/* User List Section */
+.user-list {
+  flex: 1;
+  padding: 10px;
+  background-color: #f4f4f4;
+  border-left: 1px solid #ddd;
+  overflow-y: auto;
+}
+
+.user-list h3 {
+  margin: 0 0 10px;
+}
+
+.user-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-list li {
+  padding: 8px 10px;
+  background-color: #eaeaea;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.user-list li:hover {
+  background-color: #ddd;
+}
+
+/* Chat Footer */
+.chat-footer {
+  display: flex;
+  padding: 10px;
+  background: #f4f4f4;
+}
+
+.chat-footer input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px 0 0 5px;
+  margin: 0;
+}
+
+.chat-footer button {
+  padding: 10px 15px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+}
+
+.chat-footer button:hover {
+  background: #357ab7;
+}
+
+/* Scrollbar Styling */
+.chat-messages::-webkit-scrollbar,
+.user-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb,
+.user-list::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.user-list::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}

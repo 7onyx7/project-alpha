@@ -1,0 +1,63 @@
+<!--****************** Author: Romeo Shamoun                     ******************-->
+<!--****************** Date: 01/07/2025                          ******************-->
+<!--****************** Version: 0.4                              ******************-->
+<!--****************** Description: Authentication/Registration  ******************-->
+<!--****************** Project Name: PROJECT ALPHA               ******************-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="styles/login.css" />
+  </head>
+  <body>
+    <div class="login-container">
+      <h2>Project Alpha</h2>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Username" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <p id="errorMessage">Invalid username or password.</p>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
+    <a href="/register" id="createAccountLink">Create Account</a>
+
+    <!-- This div is hidden by default -->
+    <div id="registerModal">
+      <div class="modal-content">
+        <span id="closeModal">&times;</span>
+        <!-- 'X' to close the modal -->
+        <h2>Create Account</h2>
+
+        <!-- Register Modal -->
+        <form id="registerForm">
+          <input type="text" id="firstName" placeholder="First Name" required />
+          <input type="text" id="lastName" placeholder="Last Name" required />
+          <input type="email" id="email" placeholder="Email" required />
+          <input type="text" id="regUsername" placeholder="Username" required />
+          <input
+            type="password"
+            id="regPassword"
+            placeholder="Password"
+            required
+          />
+          <input
+            type="password"
+            id="confirmPassword"
+            placeholder="Confirm Password"
+            required
+          />
+          <span id="strengthMeter">-</span>
+
+          <button type="submit">Register</button>
+        </form>
+        <p id="registerError"></p>
+      </div>
+    </div>
+
+    <script src="scripts/login.js"></script>
+  </body>
+</html>
