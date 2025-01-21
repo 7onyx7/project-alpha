@@ -183,28 +183,35 @@ app.post("/register", async (req, res) => {
 /********************************/
 /* GET /chat - Fetch Chat Users */
 /********************************/
-app.get("/chat", authenticateToken, async (req, res) => {
-  try {
-    // Fetch usernames of logged-in users from your database or session store
-    const result = await pool.query("SELECT username FROM users");
-    if (result.rows.length > 0) {
-      return res.status(200).json({
-        success: true,
-        users: result.rows, // Send user list to the client
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: "No users found",
-      });
+app.get("/chat", async (req, res) => {
+  let username;
+
+  // Check if Authorization Header Exists
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userResult = await pool.query("SELECT username FROM users WHERE id = $1", [decoded.id]);
+
+      if (userResult.rows.length > 0) {
+        username = userResult.rows[0].username;
+      } else {
+        return res.status(401).json({ success: false, message: "Invalid user." });
+      }
+    } catch (err) {
+      return res.status(403).json({ success: false, message: "Invalid or expired token." });
     }
-  } catch (err) {
-    console.error("Error querying the database:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+  } else {
+    // If No Token, Assign an Anonymous Username
+    username = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
   }
+
+  return res.status(200).json({
+    success: true,
+    username, // Send the assigned username
+  });
 });
 
 /************************/
@@ -227,15 +234,36 @@ const io = new Server(server, {
 
 // Example: Basic Chat
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  console.log('User connected:, ${socket.id}');
 
-  socket.on("chatMessage", (message) => {
-    io.emit("chatMessage", { message });
+  socket.on("userJoined", (username) => {
+    onlineUsers[socket.id] = username;
+    console.log('${username} joined the chat');
   });
 
-  // If you want a user list, define "onlineUsers" here or outside
+  socket.on("chatMessage", (data) => {
+    io.emit("chatMessage", { username: data.username, message: data.message });
+  });
+
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    const username = onlineUsers[socket.id];
+    if (username) {
+      console.log('${username} disconnected.');
+      delete onlineUsers[socket.id]; // Remove user
+      io.emit("updateUserList", Object.values(onlineUsers));
+    }
+  });
+  
+  socket.on("userDisconnected", (username) => {
+    console.log('${username} manually logged out.');
+    const userSocket = Object.keys(onlineUsers).find(
+      (key) => onlineUsers[key] === username
+    );
+
+    if (userSocket) {
+      delete onlineUsers[userSocket];
+      io.emit("updateUserList", Object.values(onlineUsers));
+    }
   });
 });
 

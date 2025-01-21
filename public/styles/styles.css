@@ -8,7 +8,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background-color: var(--secondary-color);
+  background: linear-gradient(120deg, #4a90e2, #9013fe);
   color: var(--text-color);
   margin: 0;
   display: flex;

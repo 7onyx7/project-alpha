@@ -5,54 +5,66 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendButton = document.getElementById("sendButton");
   const userList = document.getElementById("users");
 
-  // Determine the current user
-  let currentUser;
-
-  // Check if the user is logged in
-  if (
-    localStorage.getItem("isLoggedIn") === "true" &&
-    localStorage.getItem("username")
-  ) {
-    // Logged-in user
-    currentUser = localStorage.getItem("username");
-  } else {
-    // Anonymous user: generate a new random username
-    currentUser = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
-    localStorage.setItem("username", currentUser);
+   // Clear previous login data when a user joins as anonymous
+  if (!localStorage.getItem("isLoggedIn") || localStorage.getItem("isLoggedIn") === "false") {
+    localStorage.clear(); // This prevents old user data from persisting
     localStorage.setItem("isLoggedIn", "false");
   }
 
-  // Add the current user to the user list
+  // Determine the current user
+  let currentUser;
+  let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  let storedUsername = localStorage.getItem("username");
+
+  // Check if the user is logged in
+  if (isLoggedIn && storedUsername) 
+  {
+    // Logged-in user
+    currentUser = storedUsername;
+  } else {
+    // Generate a unique username for anonymous users only once
+    if (!storedUsername || isLoggedIn === false) {
+      currentUser = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
+      localStorage.setItem("username", currentUser);
+      localStorage.setItem("isLoggedIn", "false");
+    } else {
+      currentUser = storedUsername;
+    }
+  }
+
+  // Modify fetch request to handle anonymous users correctly
+  const fetchOptions = isLoggedIn
+    ? { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+    : {};
+
+    fetch("/chat", fetchOptions)
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        currentUser = data.username; // Assign username from backend
+        console.log("Assigned username:", currentUser);
+        localStorage.setItem("username", currentUser); // Store for session use
+        addUserToList(currentUser);
+      } else {
+        console.error("Error fetching user:", data.message);
+      }
+    })
+    .catch((err) => {
+      console.error("Fetch error:", err);
+    });
+
+    
+  // Clear the user list
+  userList.innerHTML = ""; 
+
+  // Add user to list
   const addUserToList = (user) => {
     const li = document.createElement("li");
     li.textContent = user;
     userList.appendChild(li);
   };
 
-  userList.innerHTML = ""; // Clear the user list
-  addUserToList(currentUser); // Add the current user to the list
-
-  // Fetch active users from the server
-  userList.innerHTML = "<li>Loading users...</li>";
-  fetch("/chat", {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      userList.innerHTML = ""; // Clear the loading message
-      if (data.success) {
-        data.users.forEach((user) => addUserToList(user.username));
-      } else {
-        console.error("Error fetching users:", data.message);
-        userList.innerHTML = "<li>Error loading users</li>";
-      }
-    })
-    .catch((err) => {
-      console.error("Fetch error:", err);
-      userList.innerHTML = "<li>Error loading users.</li>";
-    });
-
-  // Add a message to the chat box
+  // Send messages to chat!
   const addMessage = (message, type = "sent") => {
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${type}`;
@@ -69,13 +81,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Send button click handler
   sendButton.addEventListener("click", () => {
     const message = messageInput.value.trim();
-    if (message) {
+    if (message && currentUser) {
       addMessage(`${currentUser}: ${message}`, "sent");
       messageInput.value = ""; // Clear input
 
       // Simulate a server response (remove this for production)
       setTimeout(
-        () => addMessage("Server: Message received!", "received"),
+        () => addMessage("Server: Hey there! Message received!", "received"),
         1000
       );
     }
@@ -93,7 +105,23 @@ document.addEventListener("DOMContentLoaded", () => {
 const logoutButton = document.getElementById("logoutButton");
 if (logoutButton) {
   logoutButton.addEventListener("click", () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("isLoggedIn");
     localStorage.clear(); // Clear all stored data
     window.location.href = "index.html"; // Redirect to the homepage
   });
 }
+
+const socket = io();
+
+// Notify server when user disconnects
+window.addEventListener("beforeunload", () => {
+  socket.emit("userDisconnected", localStorage.getItem("username"));
+});
+
+
+window.addEventListener("beforeunload", () => {
+  localStorage.removeItem("username"); // Remove username
+  localStorage.removeItem("isLoggedIn"); // Remove login state
+});

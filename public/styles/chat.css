@@ -143,3 +143,15 @@ body {
 .user-list::-webkit-scrollbar-thumb:hover {
   background: #888;
 }
+
+#logoutButton {
+  position: absolute;
+  top: 30px;
+  right: 20px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  cursor: pointer;  
+}
