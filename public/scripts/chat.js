@@ -5,55 +5,75 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendButton = document.getElementById("sendButton");
   const userList = document.getElementById("users");
 
-   // Clear previous login data when a user joins as anonymous
-  if (!localStorage.getItem("isLoggedIn") || localStorage.getItem("isLoggedIn") === "false") {
-    localStorage.clear(); // This prevents old user data from persisting
-    localStorage.setItem("isLoggedIn", "false");
-  }
+  const adjectives = [
+    "Adventurous", "Bold", "Brave", "Calm", "Clever", "Daring",
+    "Determined", "Eager", "Fearless", "Gentle", 
+    "Happy", "Horrific", "Jolly", "Kind", "Loyal", 
+    "Mischievous", "Mysterious", "Noble", "Spooky", 
+    "Strong", "Wise", "Witty"
+  ];
+
+  const nouns = [
+    "Bear", "Cat", "Dog", "Elephant", "Eagle", 
+    "Fox", "Giraffe", "Wolf", "Panda", "Tiger",
+    "Lion", "Penguin", "Rabbit", "Lynx", "Bobcat"
+  ];
+
+  const generateRandomUsername = () => {
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${adj} ${noun}`;
+  };
 
   // Determine the current user
   let currentUser;
   let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   let storedUsername = localStorage.getItem("username");
 
-  // Check if the user is logged in
-  if (isLoggedIn && storedUsername) 
-  {
+  if (isLoggedIn && storedUsername) {
     // Logged-in user
     currentUser = storedUsername;
-  } else {
-    // Generate a unique username for anonymous users only once
-    if (!storedUsername || isLoggedIn === false) {
-      currentUser = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
-      localStorage.setItem("username", currentUser);
-      localStorage.setItem("isLoggedIn", "false");
-    } else {
-      currentUser = storedUsername;
-    }
   }
+  else {
+    // Generate a unique username for anonymous users only once per session
+    let sessionUsername = sessionStorage.getItem("username");
+
+    if (!sessionUsername) {
+      sessionUsername = generateRandomUsername();
+      sessionStorage.setItem("username", sessionUsername);
+    }
+    currentUser = sessionUsername;
+  }
+
+   // Clear previous login data when a user joins as anonymous
+  if (!localStorage.getItem("isLoggedIn") || localStorage.getItem("isLoggedIn") === "false") {
+    localStorage.clear(); // This prevents old user data from persisting
+    localStorage.setItem("isLoggedIn", "false");
+  }
+
+  
+
+  console.log("Current User:", currentUser);
 
   // Modify fetch request to handle anonymous users correctly
   const fetchOptions = isLoggedIn
     ? { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
     : {};
 
-    fetch("/chat", fetchOptions)
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        currentUser = data.username; // Assign username from backend
-        console.log("Assigned username:", currentUser);
-        localStorage.setItem("username", currentUser); // Store for session use
-        addUserToList(currentUser);
-      } else {
-        console.error("Error fetching user:", data.message);
-      }
-    })
-    .catch((err) => {
-      console.error("Fetch error:", err);
-    });
+      // After generating currentUser in the frontend:
+  fetch(`/chat?username=${encodeURIComponent(currentUser)}`, fetchOptions)
+  .then((response) => response.json())
+  .then((data) => {
+   if (data.success && data.username) {
+    currentUser = data.username; // This should be the properly decoded version
+   } else {
+    currentUser = sessionStorage.getItem("username") || generateRandomUsername();
+   }
+   addUserToList(currentUser);
+ })
+ .catch((err) => console.error("Fetch error:", err));
 
-    
+
   // Clear the user list
   userList.innerHTML = ""; 
 
@@ -132,23 +152,3 @@ function clearAnonSessionOnExit() {
 window.addEventListener("beforeunload", (event) => {
   clearAnonSessionOnExit();
 });
-
-// Function to determine the username
-function getOrGenerateUsername() {
-  let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  let storedUsername = localStorage.getItem("username");
-
-  if (isLoggedIn && storedUsername) {
-    return storedUsername; // Keep stored username if logged in
-  } else {
-    // Generate new anonymous name if none exists
-    let anonUsername = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
-    localStorage.setItem("username", anonUsername);
-    localStorage.setItem("isLoggedIn", "false");
-    return anonUsername;
-  }
-}
-
-// Assign current user name correctly
-let currentUser = getOrGenerateUsername();
-console.log("Current User:", currentUser);

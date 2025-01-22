@@ -193,19 +193,32 @@ app.get("/chat", async (req, res) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userResult = await pool.query("SELECT username FROM users WHERE id = $1", [decoded.id]);
+      const userResult = await pool.query(
+        "SELECT username FROM users WHERE id = $1",
+         [decoded.id]
+      );
 
       if (userResult.rows.length > 0) {
         username = userResult.rows[0].username;
       } else {
-        return res.status(401).json({ success: false, message: "Invalid user." });
+        return res
+        .status(401)
+        .json({ success: false, message: "Invalid user." });
       }
     } catch (err) {
-      return res.status(403).json({ success: false, message: "Invalid or expired token." });
+      return res
+      .status(403)
+      .json({ success: false, message: "Invalid or expired token." });
     }
   } else {
-    // If No Token, Assign an Anonymous Username
-    username = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
+     // Anonymous user scenario
+     if (req.query.username) {
+      // If the frontend passed a username, decode it
+      username = decodeURIComponent(req.query.username);
+    } else {
+      // Otherwise, fallback to the old Anon_xxxx
+      username = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
+    }
   }
 
   return res.status(200).json({
