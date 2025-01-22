@@ -121,7 +121,34 @@ window.addEventListener("beforeunload", () => {
 });
 
 
-window.addEventListener("beforeunload", () => {
-  localStorage.removeItem("username"); // Remove username
-  localStorage.removeItem("isLoggedIn"); // Remove login state
+function clearAnonSessionOnExit() {
+  if (localStorage.getItem("isLoggedIn") !== "true") {
+    localStorage.removeItem("username"); // Remove only for anonymous users
+    localStorage.removeItem("isLoggedIn");
+  }
+}
+
+// Handle when the user **closes the tab or browser**
+window.addEventListener("beforeunload", (event) => {
+  clearAnonSessionOnExit();
 });
+
+// Function to determine the username
+function getOrGenerateUsername() {
+  let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  let storedUsername = localStorage.getItem("username");
+
+  if (isLoggedIn && storedUsername) {
+    return storedUsername; // Keep stored username if logged in
+  } else {
+    // Generate new anonymous name if none exists
+    let anonUsername = `Anon_${Math.floor(1000 + Math.random() * 9000)}`;
+    localStorage.setItem("username", anonUsername);
+    localStorage.setItem("isLoggedIn", "false");
+    return anonUsername;
+  }
+}
+
+// Assign current user name correctly
+let currentUser = getOrGenerateUsername();
+console.log("Current User:", currentUser);
