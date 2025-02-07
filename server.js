@@ -110,6 +110,18 @@ app.post("/login", async (req, res) => {
 });
 
 /**********************************/
+/*       Logout endpoint          */
+/**********************************/
+
+app.post("/logout", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Logout successful!",
+  });
+
+})
+
+/**********************************/
 /*      Register endpoint         */
 /**********************************/
 app.post("/register", async (req, res) => {
@@ -200,7 +212,13 @@ app.get("/chat", async (req, res) => {
 
       if (userResult.rows.length > 0) {
         username = userResult.rows[0].username;
-      } else {
+        
+        return res.status(200).json({
+          success: true,
+          username,
+        });
+      } 
+      else {
         return res
         .status(401)
         .json({ success: false, message: "Invalid user." });
@@ -211,6 +229,7 @@ app.get("/chat", async (req, res) => {
       .json({ success: false, message: "Invalid or expired token." });
     }
   } else {
+    
      // Anonymous user scenario
      if (req.query.username) {
       // If the frontend passed a username, decode it
@@ -225,6 +244,7 @@ app.get("/chat", async (req, res) => {
     success: true,
     username, // Send the assigned username
   });
+
 });
 
 /************************/

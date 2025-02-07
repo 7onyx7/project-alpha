@@ -61,17 +61,35 @@ document.addEventListener("DOMContentLoaded", () => {
     : {};
 
       // After generating currentUser in the frontend:
-  fetch(`/chat?username=${encodeURIComponent(currentUser)}`, fetchOptions)
-  .then((response) => response.json())
-  .then((data) => {
-   if (data.success && data.username) {
-    currentUser = data.username; // This should be the properly decoded version
-   } else {
-    currentUser = sessionStorage.getItem("username") || generateRandomUsername();
-   }
-   addUserToList(currentUser);
- })
- .catch((err) => console.error("Fetch error:", err));
+      fetch(`/chat?username=${encodeURIComponent(currentUser)}`, fetchOptions)
+      .then((response) => {
+        if (!response.ok) { // If response is NOT okay (e.g., 401 Unauthorized)
+          throw new Error("Unauthorized");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success && data.username) {
+          currentUser = data.username; 
+        } else {
+          currentUser = sessionStorage.getItem("username") || generateRandomUsername();
+        }
+        addUserToList(currentUser);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        if (err.message === "Unauthorized") {
+          logoutUser(); // Call logout function if unauthorized
+        }
+      });
+
+      function logoutUser() {
+        localStorage.clear();
+        sessionStorage.clear();
+        alert("Session expired. Please log in again."); // Show a message
+        window.location.href = "index.html"; // Redirect to login page
+      }
+    
 
 
   // Clear the user list
@@ -129,6 +147,7 @@ if (logoutButton) {
     localStorage.removeItem("username");
     localStorage.removeItem("isLoggedIn");
     localStorage.clear(); // Clear all stored data
+    sessionStorage.clear(); // Clear session data
     window.location.href = "index.html"; // Redirect to the homepage
   });
 }
