@@ -265,55 +265,101 @@ const io = new Server(server, {
   },
 });
 
-// Example: Basic Chat
+const activeRooms = {}; // Tracks rooms and their users
+
 io.on("connection", (socket) => {
-  console.log('User connected:, ${socket.id}');
+    console.log(`User connected: ${socket.id}`);
 
-  socket.on("userJoined", (username) => {
-    if (!username) {
-      console.error("User joined without a username!");
-      return;
-    }
-  
-    onlineUsers[socket.id] = username;
-    console.log(`${username} joined the chat`);
-  
-    io.emit("updateUserList", Object.values(onlineUsers));
-  });
+    socket.on("userJoined", (username) => {
+        if (!username) {
+            console.error("User joined without a username!");
+            return;
+        }
 
-  socket.on("chatMessage", (data) => {
-    io.emit("chatMessage", data);
-  });
+        let room = null;
 
-  socket.on("disconnect", () => {
-    const username = onlineUsers[socket.id];
-    if (username) {
-      console.log('${username} disconnected.');
-      delete onlineUsers[socket.id]; // Remove user
-      io.emit("updateUserList", Object.values(onlineUsers));
-    }
-  });
-  
-  socket.on("userDisconnected", (username) => {
+        // Check if an available room has only 1 user
+        for (let [roomName, users] of Object.entries(activeRooms)) {
+            if (users.length === 1) {
+                room = roomName;
+                break;
+            }
+        }
 
-    if (!username) return;
+        // If no available room, create a new one
+        if (!room) {
+            room = `room_${socket.id}`;
+            activeRooms[room] = [];
+        }
 
-    console.log(`${username} manually logged out.`);
+        // Join the room
+        socket.join(room);
+        activeRooms[room].push({ id: socket.id, username });
+        onlineUsers[socket.id] = { username, room };
 
-    socket.broadcast.emit("chatEnded", { username });
-  
-    io.to(socket.id).emit("selfDisconnect");
-  
-    const userSocket = Object.keys(onlineUsers).find(
-      (key) => onlineUsers[key] === username
-    );
-    if (userSocket) {
-      delete onlineUsers[userSocket];
-      io.emit("updateUserList", Object.values(onlineUsers)); // Update user list
-    }
-    console.log(`chatEnded event emitted for ${username}`);
-  });
+        console.log(`${username} joined ${room}`);
+
+        // Notify users in the room
+        io.to(room).emit("userJoined", { username, room });
+
+        io.to(room).emit("updateUserList", activeRooms[room].map((user) => user.username));
+
+        // If room is full (2 users), notify them
+        if (activeRooms[room].length === 2) {
+            io.to(room).emit("roomReady", { room });
+        }
+
+        socket.on("chatMessage", (data) => {
+            io.to(room).emit("chatMessage", data);
+        });
+
+        socket.on("userDisconnected", () => {
+          const userInfo = onlineUsers[socket.id];
+          if (!userInfo) return;
+      
+          const { username, room } = userInfo;
+          console.log(`${username} left ${room}`);
+      
+          // Notify the remaining user in the room
+          socket.to(room).emit("chatEnded", { username });
+      
+          // Remove user from tracking
+          socket.leave(room);
+          delete onlineUsers[socket.id];
+          activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
+      
+          if (activeRooms[room].length === 0) {
+              delete activeRooms[room];
+          }
+      
+          io.to(room).emit("updateUserList", activeRooms[room]?.map(user => user.username) || []);
+        });
+      
+      socket.on("disconnect", () => {
+          const userInfo = onlineUsers[socket.id];
+          if (!userInfo) return;
+      
+          const { username, room } = userInfo;
+          console.log(`${username} disconnected from ${room}`);
+      
+          // Notify remaining user in the room
+          socket.to(room).emit("chatEnded", { username });
+      
+          // Remove user from tracking
+          socket.leave(room);
+          delete onlineUsers[socket.id];
+          activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
+      
+          if (activeRooms[room].length === 0) {
+              delete activeRooms[room];
+          }
+      
+          // 🔹 Update the user list
+          io.to(room).emit("updateUserList", activeRooms[room]?.map(user => user.username || []));
+      });
+    });
 });
+
 
 server.listen(port, async () => {
   console.log(`Server is running at http://localhost:${port}`);

@@ -113,13 +113,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.emit("userJoined", currentUser);
 
+  socket.on("userJoined", (data) => {
+    console.log(`You joined ${data.room} with ${data.username}`);
+});
+
+  socket.on("roomReady", (data) => {
+    console.log(`Chat room ${data.room} is now full!`);
+});
+
   socket.on("updateUserList", (users) => {
+        
+    const userList = document.getElementById("users");
     userList.innerHTML = "";  // Clear current list
+  
     users.forEach((user) => {
       const li = document.createElement("li");
       li.textContent = user;
       userList.appendChild(li);
     });
+
+    console.log("👥 Users in the chat:", users);
+
   });
   
   let escListenerAdded = false;
