@@ -1,4 +1,5 @@
 let socket;
+let escPressedOnce = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   // DOM elements
@@ -50,6 +51,36 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("isLoggedIn", "false");
   }
 
+      
+
+  // Clear the user list
+  userList.innerHTML = ""; 
+
+  // Add user to list
+  const addUserToList = (user) => {
+    const li = document.createElement("li");
+    li.textContent = user;
+    userList.appendChild(li);
+  };
+
+  // Send messages to chat!
+  const addMessage = (message, type = "sent") => {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${type}`;
+    msgDiv.textContent = message;
+    messageBox.appendChild(msgDiv);
+    messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll
+  };
+
+  socket = io();
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    alert("Session expired. Please log in again."); // Show a message
+    window.location.href = "index.html"; // Redirect to login page
+  }
+
   console.log("Current User:", currentUser);
 
   // Modify fetch request to handle anonymous users correctly
@@ -80,36 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      function logoutUser() {
-        localStorage.clear();
-        sessionStorage.clear();
-        alert("Session expired. Please log in again."); // Show a message
-        window.location.href = "index.html"; // Redirect to login page
-      }
-    
-
-
-  // Clear the user list
-  userList.innerHTML = ""; 
-
-  // Add user to list
-  const addUserToList = (user) => {
-    const li = document.createElement("li");
-    li.textContent = user;
-    userList.appendChild(li);
-  };
-
-  // Send messages to chat!
-  const addMessage = (message, type = "sent") => {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `message ${type}`;
-    msgDiv.textContent = message;
-    messageBox.appendChild(msgDiv);
-    messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll
-  };
-
-  socket = io();
-
   socket.emit("userJoined", currentUser);
 
   socket.on("updateUserList", (users) => {
@@ -121,11 +122,34 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   
+  let escListenerAdded = false;
 
   socket.on("chatMessage", (data) => {
     if (data.username === currentUser) return;
     addMessage(`${data.username}: ${data.message}`, "received");
   });
+
+  socket.on("chatEnded", (data) => {
+    console.log("📢 Received chatEnded event:", data);
+    
+    if (!data || !data.username) {
+      console.error("❌ chatEnded event received but data is missing!");
+      return;
+    }  
+    alert(`${data.username} has ended the chat. The session will now restart.`);
+
+    setTimeout(() => {
+      location.reload();
+    }, 5000);
+    
+  });
+
+// Ensure the leaving user does NOT see the alert
+socket.on("selfDisconnect", () => {
+    console.log("You have ended the chat.");
+});
+
+
 
   // Enable/Disable Send Button based on input value
   messageInput.addEventListener("input", () => {

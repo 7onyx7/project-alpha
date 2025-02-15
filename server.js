@@ -196,7 +196,7 @@ app.post("/register", async (req, res) => {
 /* GET /chat - Fetch Chat Users */
 /********************************/
 app.get("/chat", async (req, res) => {
-  let username;
+  
 
   // Check if Authorization Header Exists
   const authHeader = req.headers["authorization"];
@@ -270,8 +270,14 @@ io.on("connection", (socket) => {
   console.log('User connected:, ${socket.id}');
 
   socket.on("userJoined", (username) => {
+    if (!username) {
+      console.error("User joined without a username!");
+      return;
+    }
+  
     onlineUsers[socket.id] = username;
-    console.log('${username} joined the chat');
+    console.log(`${username} joined the chat`);
+  
     io.emit("updateUserList", Object.values(onlineUsers));
   });
 
@@ -289,15 +295,23 @@ io.on("connection", (socket) => {
   });
   
   socket.on("userDisconnected", (username) => {
-    console.log('${username} manually logged out.');
+
+    if (!username) return;
+
+    console.log(`${username} manually logged out.`);
+
+    socket.broadcast.emit("chatEnded", { username });
+  
+    io.to(socket.id).emit("selfDisconnect");
+  
     const userSocket = Object.keys(onlineUsers).find(
       (key) => onlineUsers[key] === username
     );
-
     if (userSocket) {
       delete onlineUsers[userSocket];
-      io.emit("updateUserList", Object.values(onlineUsers));
+      io.emit("updateUserList", Object.values(onlineUsers)); // Update user list
     }
+    console.log(`chatEnded event emitted for ${username}`);
   });
 });
 
