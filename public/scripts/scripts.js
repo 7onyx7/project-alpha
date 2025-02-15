@@ -1,12 +1,11 @@
-// scripts.js
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Event listeners for the buttons
+  // Redirect to chat when clicking the "Anon" button
   document.getElementById("anon").addEventListener("click", () => {
-    window.location.href = "chat.html"; // Redirect to the chat page
+    window.location.href = "chat.html";
   });
 
+  // Redirect to login when clicking the "Login" button
   document.getElementById("login").addEventListener("click", () => {
-    window.location.href = "login.html"; // Redirect to the login page
+    window.location.href = "login.html";
   });
 });

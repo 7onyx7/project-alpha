@@ -10,6 +10,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
+    <script src="scripts/scripts.js"></script> 
+    <script src="scripts/login.js"></script>
     <link rel="stylesheet" href="styles/login.css" />
   </head>
   <body>
@@ -21,18 +23,15 @@
         <p id="errorMessage">Invalid username or password.</p>
         <button type="submit">Login</button>
       </form>
+      <p id="registerMessage">Don't have an account? Register here!</p>
+      <button id="createAccountButton">Create Account</button>
     </div>
-
-    <a href="/register" id="createAccountLink">Create Account</a>
-
-    <!-- This div is hidden by default -->
+    
     <div id="registerModal">
       <div class="modal-content">
-        <span id="closeModal">&times;</span>
-        <!-- 'X' to close the modal -->
+        <button id="closeModal" aria-label="Close">&times;</button>       
+        
         <h2>Create Account</h2>
-
-        <!-- Register Modal -->
         <form id="registerForm">
           <input type="text" id="firstName" placeholder="First Name" required />
           <input type="text" id="lastName" placeholder="Last Name" required />
@@ -57,7 +56,5 @@
         <p id="registerError"></p>
       </div>
     </div>
-
-    <script src="scripts/login.js"></script>
   </body>
 </html>

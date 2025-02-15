@@ -1,62 +1,96 @@
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #f4f4f4;
+  --text-color: #333;
+  --button-hover: #0056b3;
+  --error-color: #d9534f;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: linear-gradient(120deg, #4a90e2, #9013fe);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  color: var(--text-color);
   margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  position: relative;
 }
+
 .login-container {
   background-color: #fff;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  padding: 30px;
   max-width: 400px;
+  width: 100%;
 }
+
 .login-container h2 {
   margin-bottom: 20px;
   text-align: center;
 }
+
 .login-container input[type="text"],
 .login-container input[type="password"] {
   width: calc(100% - 20px);
   padding: 10px;
-  padding-right: 15px;
-  margin: 10px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
+  margin: 10px 0;
 }
-.login-container button {
-  width: 100%;
-  padding: 10px;
-  background-color: #4caf50;
+
+button {
+  background-color: var(--primary-color);
   color: #fff;
   border: none;
   border-radius: 5px;
+  padding: 10px 15px;
+  font-size: 16px;
+  margin: 10px 0;
   cursor: pointer;
+  width: 100%;
 }
-.login-container button:hover {
-  background-color: #45a049;
+
+button:hover {
+  background-color: var(--button-hover);
 }
+
 #errorMessage {
-  color: red;
+  color: var(--error-color);
   text-align: center;
   display: none;
 }
-.register-container,
-a {
+
+/* Container that holds the register button in the top-right corner */
+.register-container {
   position: absolute;
   top: 20px;
   right: 20px;
+  width: auto;
+}
+
+/* The createAccountButton should not stretch wide, set to auto */
+#createAccountButton {
+  display: inline-block;
+  padding: 8px 12px;
+  width: auto;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  background-color: var(--primary-color);
+  border-radius: 5px;
   text-decoration: none;
-}
-.register-container #register {
   text-align: center;
-  cursor: pointer;
-  color: blue;
+  transition: background 0.3s ease-in-out;
 }
+
+#createAccountButton:hover {
+  background-color: var(--button-hover);
+}
+
 #registerModal {
   display: none;
   position: fixed;
@@ -66,35 +100,44 @@ a {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .modal-content {
   background-color: #fff;
   margin: 5% auto;
   padding: 20px;
   width: 80%;
   max-width: 400px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .modal-content h2 {
   margin-top: 0;
-  text-align: center;
 }
 
 #closeModal {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: -10px;
+  right: 0px;
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   background: none;
   border: none;
-  color: #333;
+  color: var(--text-color);
+  z-index: 10000;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+}
+
+#closeModal:hover {
+  color: var(--error-color);
 }
 
 #registerForm {
@@ -105,7 +148,7 @@ a {
 }
 
 #registerForm input {
-  margin: 8px 10px 8px 0;
+  margin: 8px 0;
   width: calc(100% - 10px);
   padding: 10px;
   border: 1px solid #ccc;
@@ -116,7 +159,7 @@ a {
 #registerForm button {
   margin-top: 12px;
   padding: 10px;
-  background-color: #4caf50;
+  background-color: var(--primary-color);
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -124,11 +167,11 @@ a {
 }
 
 #registerForm button:hover {
-  background-color: #45a049;
+  background-color: var(--button-hover);
 }
 
 #registerError {
-  color: red;
+  color: var(--error-color);
   text-align: center;
   margin-top: 10px;
 }

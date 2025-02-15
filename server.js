@@ -25,6 +25,10 @@ const port = 3000;
 app.use(express.json()); // Parse JSON bodies
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.get("/register", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "register.html"));
+});
+
 
 /***************/
 /* DB Settings */
