@@ -275,7 +275,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("chatMessage", (data) => {
-    io.emit("chatMessage", { username: data.username, message: data.message });
+    io.emit("chatMessage", data);
   });
 
   socket.on("disconnect", () => {
@@ -300,10 +300,8 @@ io.on("connection", (socket) => {
   });
 });
 
-app.listen(port, async () => {
+server.listen(port, async () => {
   console.log(`Server is running at http://localhost:${port}`);
-
-  // Dynamically import `open` and call it here
   const { default: open } = await import("open");
   open(`http://localhost:${port}`);
 });

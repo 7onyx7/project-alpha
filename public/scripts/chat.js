@@ -1,3 +1,5 @@
+let socket;
+
 document.addEventListener("DOMContentLoaded", () => {
   // DOM elements
   const messageBox = document.getElementById("messages");
@@ -5,27 +7,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendButton = document.getElementById("sendButton");
   const userList = document.getElementById("users");
 
-  const adjectives = [
-    "Adventurous", "Bold", "Brave", "Calm", "Clever", "Daring",
-    "Determined", "Eager", "Fearless", "Gentle", 
-    "Happy", "Horrific", "Jolly", "Kind", "Loyal", 
-    "Mischievous", "Mysterious", "Noble", "Spooky", 
-    "Strong", "Wise", "Witty"
-  ];
-
-  const nouns = [
-    "Bear", "Cat", "Dog", "Elephant", "Eagle", 
-    "Fox", "Giraffe", "Wolf", "Panda", "Tiger",
-    "Lion", "Penguin", "Rabbit", "Lynx", "Bobcat"
-  ];
-
-  const generateRandomUsername = () => {
+  function generateRandomUsername() {
+    const adjectives = [
+      "Adventurous", "Bold", "Brave", "Calm", "Clever", "Daring",
+      "Determined", "Eager", "Fearless", "Gentle", 
+      "Happy", "Horrific", "Jolly", "Kind", "Loyal", 
+      "Mischievous", "Mysterious", "Noble", "Spooky", 
+      "Strong", "Wise", "Witty"
+    ];
+    const nouns = [
+      "Bear", "Cat", "Dog", "Elephant", "Eagle", 
+      "Fox", "Giraffe", "Wolf", "Panda", "Tiger",
+      "Lion", "Penguin", "Rabbit", "Lynx", "Bobcat"
+    ];
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     return `${adj} ${noun}`;
-  };
+  }
+  
 
-  // Determine the current user
   let currentUser;
   let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   let storedUsername = localStorage.getItem("username");
@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
   else {
     // Generate a unique username for anonymous users only once per session
     let sessionUsername = sessionStorage.getItem("username");
-
     if (!sessionUsername) {
       sessionUsername = generateRandomUsername();
       sessionStorage.setItem("username", sessionUsername);
@@ -50,8 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.clear(); // This prevents old user data from persisting
     localStorage.setItem("isLoggedIn", "false");
   }
-
-  
 
   console.log("Current User:", currentUser);
 
@@ -111,6 +108,13 @@ document.addEventListener("DOMContentLoaded", () => {
     messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll
   };
 
+  socket = io();
+
+  socket.on("chatMessage", (data) => {
+    if (data.username === currentUser) return;
+    addMessage(`${data.username}: ${data.message}`, "received");
+  });
+
   // Enable/Disable Send Button based on input value
   messageInput.addEventListener("input", () => {
     sendButton.disabled = !messageInput.value.trim();
@@ -121,13 +125,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const message = messageInput.value.trim();
     if (message && currentUser) {
       addMessage(`${currentUser}: ${message}`, "sent");
+      socket.emit("chatMessage", { username: currentUser, message });
       messageInput.value = ""; // Clear input
-
-      // Simulate a server response (remove this for production)
-      setTimeout(
-        () => addMessage("Server: Hey there! Message received!", "received"),
-        1000
-      );
     }
   });
 
@@ -137,9 +136,8 @@ document.addEventListener("DOMContentLoaded", () => {
       sendButton.click();
     }
   });
-});
 
-// Logout functionality
+  // Logout functionality
 const logoutButton = document.getElementById("logoutButton");
 if (logoutButton) {
   logoutButton.addEventListener("click", () => {
@@ -152,7 +150,7 @@ if (logoutButton) {
   });
 }
 
-const socket = io();
+});
 
 // Notify server when user disconnects
 window.addEventListener("beforeunload", () => {
