@@ -110,6 +110,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket = io();
 
+  socket.emit("userJoined", currentUser);
+
+  socket.on("updateUserList", (users) => {
+    userList.innerHTML = "";  // Clear current list
+    users.forEach((user) => {
+      const li = document.createElement("li");
+      li.textContent = user;
+      userList.appendChild(li);
+    });
+  });
+  
+
   socket.on("chatMessage", (data) => {
     if (data.username === currentUser) return;
     addMessage(`${data.username}: ${data.message}`, "received");

@@ -272,6 +272,7 @@ io.on("connection", (socket) => {
   socket.on("userJoined", (username) => {
     onlineUsers[socket.id] = username;
     console.log('${username} joined the chat');
+    io.emit("updateUserList", Object.values(onlineUsers));
   });
 
   socket.on("chatMessage", (data) => {
