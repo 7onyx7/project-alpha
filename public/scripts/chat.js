@@ -162,6 +162,32 @@ if (logoutButton) {
   });
 }
 
+let escPressedOnce = false;
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (!escPressedOnce) {
+      // First ESC press: Show confirmation prompt
+      escPressedOnce = true;
+      alert("Press ESC again to confirm ending the chat.");
+      
+      // Reset the flag if no second ESC press happens within 3 seconds
+      setTimeout(() => {
+        escPressedOnce = false;
+      }, 3000); 
+    } else {
+      // Second ESC press: End the chat
+      endChat();
+    }
+  }
+});
+
+function endChat() {
+  socket.emit("userDisconnected", currentUser);
+  alert("Chat ended.");
+  window.location.href = "index.html"; // Or disable UI elements if needed
+}
+
 });
 
 // Notify server when user disconnects
