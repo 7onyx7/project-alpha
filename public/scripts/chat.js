@@ -14,12 +14,15 @@ document.addEventListener("DOMContentLoaded", () => {
       "Determined", "Eager", "Fearless", "Gentle", 
       "Happy", "Horrific", "Jolly", "Kind", "Loyal", 
       "Mischievous", "Mysterious", "Noble", "Spooky", 
-      "Strong", "Wise", "Witty"
+      "Strong", "Wise", "Witty", "Zealous"
     ];
     const nouns = [
       "Bear", "Cat", "Dog", "Elephant", "Eagle", 
       "Fox", "Giraffe", "Wolf", "Panda", "Tiger",
-      "Lion", "Penguin", "Rabbit", "Lynx", "Bobcat"
+      "Lion", "Penguin", "Rabbit", "Lynx", "Bobcat",
+      "Wizard", "Witch", "Vampire", "Zombie", "Ghost",
+      "Knight", "Ninja", "Pirate", "Samurai", "Viking",
+      "Dragon", "Hydra", "Phoenix", "Unicorn", "Yeti"
     ];
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
@@ -200,8 +203,6 @@ if (logoutButton) {
   });
 }
 
-let escPressedOnce = false;
-
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!escPressedOnce) {
@@ -216,12 +217,14 @@ document.addEventListener("keydown", (event) => {
     } else {
       // Second ESC press: End the chat
       endChat();
+      escPressedOnce = false;
     }
   }
 });
 
 function endChat() {
   socket.emit("userDisconnected", currentUser);
+  sessionStorage.removeItem("username");
   alert("Chat ended.");
   window.location.href = "index.html"; // Or disable UI elements if needed
 }
