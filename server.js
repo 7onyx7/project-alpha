@@ -10,6 +10,11 @@ const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
 const cors = require("cors");
 const http = require("http");
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const csurf = require('csurf');
+const expressSanitizer = require('express-sanitizer');
+const cookieParser = require('cookie-parser');
 
 let open;
 (async () => {
@@ -24,11 +29,36 @@ const port = 3000;
 /*********************/
 app.use(express.json()); // Parse JSON bodies
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cookieParser()); // Add cookie parser before CSRF
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "register.html"));
 });
 
+// Apply security headers
+app.use(helmet());
+
+// Apply rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later."
+});
+app.use(limiter);
+
+// CSRF is disabled for now - will be implemented with proper frontend integration
+// app.use(csurf({ cookie: true }));
+
+// Apply input sanitization
+app.use(expressSanitizer());
+
+// CSRF error handling (commented out for now)
+// app.use((err, req, res, next) => {
+//   if (err.code === 'EBADCSRFTOKEN') {
+//     return res.status(403).json({ success: false, message: 'Invalid CSRF token.' });
+//   }
+//   next(err);
+// });
 
 /***************/
 /* DB Settings */
@@ -274,25 +304,50 @@ const activeRooms = {}; // Tracks rooms and their users
 io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on("userJoined", (username) => {
+    socket.on("userJoined", (data) => {
+        const { username, room: requestedRoom } = data;
+        let room = requestedRoom;
+
         if (!username) {
             console.error("User joined without a username!");
             return;
         }
 
-        let room = null;
+        // If user specified a room, check if it exists and has space
+        if (room && activeRooms[room]) {
+            // If room is full, create a new one
+            if (activeRooms[room].length >= 2) {
+                room = `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                activeRooms[room] = [];
+            }
+        } 
+        // If room doesn't exist or no room was specified, try to pair with someone
+        else {
+            // Look for a room with exactly one user
+            let foundRoom = null;
+            for (let [roomName, users] of Object.entries(activeRooms)) {
+                if (users.length === 1) {
+                    foundRoom = roomName;
+                    break;
+                }
+            }
 
-        // Check if an available room has only 1 user
-        for (let [roomName, users] of Object.entries(activeRooms)) {
-            if (users.length === 1) {
-                room = roomName;
-                break;
+            // If no room with 1 user found, create a new one
+            if (foundRoom) {
+                room = foundRoom;
+            } else {
+                room = room || `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                activeRooms[room] = [];
             }
         }
 
-        // If no available room, create a new one
-        if (!room) {
-            room = `room_${socket.id}`;
+        if (activeRooms[room]?.length >= 2) {
+            socket.emit("roomFull", { room });
+            return;
+        }
+
+        // Initialize room if it doesn't exist
+        if (!activeRooms[room]) {
             activeRooms[room] = [];
         }
 
@@ -305,65 +360,124 @@ io.on("connection", (socket) => {
 
         // Notify users in the room
         io.to(room).emit("userJoined", { username, room });
-
         io.to(room).emit("updateUserList", activeRooms[room].map((user) => user.username));
+
+        // 🔹 Notify if waiting for a partner
+        if (activeRooms[room].length === 1) {
+            io.to(room).emit("waitingForPartner", { message: "Waiting for a partner to join..." });
+        }
 
         // If room is full (2 users), notify them
         if (activeRooms[room].length === 2) {
             io.to(room).emit("roomReady", { room });
         }
+    });
 
-        socket.on("chatMessage", (data) => {
-            io.to(room).emit("chatMessage", data);
-        });
+    socket.on("chatMessage", async (data) => {
+        const userInfo = onlineUsers[socket.id];
+        if (!userInfo) return;
+        
+        const { room } = userInfo;
+        try {
+            await pool.query(
+                "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)",
+                [room, data.username, data.message]
+            );
+        } catch (err) {
+            console.error("Error saving message to database:", err);
+        }
+        io.to(room).emit("chatMessage", data);
+    });
 
-        socket.on("userDisconnected", () => {
-          const userInfo = onlineUsers[socket.id];
-          if (!userInfo) return;
-      
-          const { username, room } = userInfo;
-          console.log(`${username} left ${room}`);
-      
-          // Notify the remaining user in the room
-          socket.to(room).emit("chatEnded", { username });
-      
-          // Remove user from tracking
-          socket.leave(room);
-          delete onlineUsers[socket.id];
-          activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
-      
-          if (activeRooms[room].length === 0) {
-              delete activeRooms[room];
-          }
-      
-          io.to(room).emit("updateUserList", activeRooms[room]?.map(user => user.username) || []);
-        });
-      
-      socket.on("disconnect", () => {
-          const userInfo = onlineUsers[socket.id];
-          if (!userInfo) return;
-      
-          const { username, room } = userInfo;
-          console.log(`${username} disconnected from ${room}`);
-      
-          // Notify remaining user in the room
-          socket.to(room).emit("chatEnded", { username });
-      
-          // Remove user from tracking
-          socket.leave(room);
-          delete onlineUsers[socket.id];
-          activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
-      
-          if (activeRooms[room].length === 0) {
-              delete activeRooms[room];
-          }
-      
-          // 🔹 Update the user list
-          io.to(room).emit("updateUserList", activeRooms[room]?.map(user => user.username || []));
-      });
+    
+    socket.on("userDisconnected", () => {
+        const userInfo = onlineUsers[socket.id];
+        if (!userInfo) return;
+    
+        const { username, room } = userInfo;
+        console.log(`${username} left ${room}`);
+    
+        // Notify the remaining user in the room
+        socket.to(room).emit("chatEnded", { username });
+    
+        // Remove user from tracking
+        socket.leave(room);
+        delete onlineUsers[socket.id];
+        if (activeRooms[room]) {
+            activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
+        
+            if (activeRooms[room].length === 0) {
+                delete activeRooms[room];
+            } else {
+                io.to(room).emit("updateUserList", activeRooms[room].map(user => user.username));
+            }
+        }
+    });
+    
+    
+    socket.on("disconnect", () => {
+        // When a disconnect happens, don't immediately remove the user
+        // Instead, start a timeout to check if they reconnect
+        const userInfo = onlineUsers[socket.id];
+        if (!userInfo) return;
+    
+        const { username, room } = userInfo;
+        console.log(`${username} disconnected from ${room} - waiting to see if they return...`);
+        
+        // Set a flag that this user is in a "disconnecting" state
+        if (userInfo) {
+            userInfo.disconnecting = true;
+            
+            // Give the user some time to reconnect (e.g., if they're just switching tabs)
+            setTimeout(() => {
+                // After the timeout, check if the user is still in the disconnecting state
+                if (onlineUsers[socket.id] && onlineUsers[socket.id].disconnecting) {
+                    console.log(`${username} did not reconnect, removing from room ${room}`);
+                    
+                    // Notify remaining user in the room
+                    socket.to(room).emit("chatEnded", { username });
+                    
+                    // Remove user from tracking
+                    socket.leave(room);
+                    delete onlineUsers[socket.id];
+                    
+                    if (activeRooms[room]) {
+                        activeRooms[room] = activeRooms[room].filter(user => user.id !== socket.id);
+                    
+                        if (activeRooms[room].length === 0) {
+                            delete activeRooms[room];
+                        } else {
+                            io.to(room).emit("updateUserList", activeRooms[room].map(user => user.username));
+                        }
+                    }
+                }
+            }, 5000); // Wait 5 seconds before considering the user truly disconnected
+        }
+    });
+    
+    // Handle user reconnection
+    socket.on("userReconnected", (data) => {
+        const { username, room } = data;
+        if (onlineUsers[socket.id] && onlineUsers[socket.id].disconnecting) {
+            console.log(`${username} reconnected to ${room}`);
+            onlineUsers[socket.id].disconnecting = false;
+        }
     });
 });
 
+app.get("/messages/:room", async (req, res) => {
+    const { room } = req.params;
+    try {
+      const result = await pool.query(
+        "SELECT username, message, timestamp FROM messages WHERE room = $1 ORDER BY timestamp ASC LIMIT 100",
+        [room]
+      );
+      res.json({ success: true, messages: result.rows });
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+      res.status(500).json({ success: false, message: "Error: Failed to fetch messages" });
+    }
+});
 
 server.listen(port, async () => {
   console.log(`Server is running at http://localhost:${port}`);

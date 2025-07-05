@@ -68,6 +68,14 @@ body {
   align-self: flex-start;
 }
 
+.chat-messages .message.system {
+  background: #fdf0d5;
+  color: #333;
+  align-self: center;
+  font-style: italic;
+  border: 1px solid #f5c17e;
+}
+
 /* User List Section */
 .user-list {
   flex: 1;

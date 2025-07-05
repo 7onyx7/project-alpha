@@ -2,6 +2,20 @@ let socket;
 let escPressedOnce = false;
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize socket connection
+  socket = io();
+  
+  // Handle reconnection
+  socket.on('connect', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const room = urlParams.get("room");
+    const currentUser = sessionStorage.getItem("username");
+    
+    // If we already have a username and room, we might be reconnecting
+    if (currentUser && room) {
+      socket.emit("userReconnected", { username: currentUser, room });
+    }
+  });
   // DOM elements
   const messageBox = document.getElementById("messages");
   const messageInput = document.getElementById("messageInput");
@@ -28,11 +42,34 @@ document.addEventListener("DOMContentLoaded", () => {
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     return `${adj} ${noun}`;
   }
+
+  function generateRandomRoomName() {
+    const timestamp = Date.now();
+    const randomValue = Math.floor(Math.random() * 10000);
+    return `room-${timestamp}-${randomValue}`;
+  }
   
 
   let currentUser;
   let isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  let storedUsername = localStorage.getItem("username");
+  let storedUsername = localStorage.getItem("username"); 
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  let room = urlParams.get("room");
+
+  // If no room specified in URL, create a new room and redirect
+  if (!room) {
+    room = generateRandomRoomName();
+    window.location.href = `chat.html?room=${room}`;
+    return;
+  }
+
+  const roomNameElem = document.getElementById("room-name");
+  if (roomNameElem) {
+    roomNameElem.textContent = `Room: ${room}`;
+  }
+
+  loadMessageHistory(room);
 
   if (isLoggedIn && storedUsername) {
     // Logged-in user
@@ -72,10 +109,22 @@ document.addEventListener("DOMContentLoaded", () => {
     msgDiv.className = `message ${type}`;
     msgDiv.textContent = message;
     messageBox.appendChild(msgDiv);
-    messageBox.scrollTop = messageBox.scrollHeight; // Auto-scroll
+    messageBox.scrollTop = messageBox.scrollHeight;
   };
 
-  socket = io();
+  async function loadMessageHistory(room) {
+    try {
+      const response = await fetch(`/messages/${encodeURIComponent(room)}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.messages)) {
+        data.messages.forEach(msg => {
+          addMessage(`${msg.username}: ${msg.message}`, "received");
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching message history:", err);
+    }
+  }
 
   function logoutUser() {
     localStorage.clear();
@@ -114,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-  socket.emit("userJoined", currentUser);
+  socket.emit("userJoined", { username: currentUser, room });
 
   socket.on("userJoined", (data) => {
     console.log(`You joined ${data.room} with ${data.username}`);
@@ -122,7 +171,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on("roomReady", (data) => {
     console.log(`Chat room ${data.room} is now full!`);
-});
+    addMessage("Chat room is ready! You can now start chatting.", "system");
+  });
+
+  socket.on("waitingForPartner", (data) => {
+    addMessage(data.message, "system"); // "system" can be styled differently in your CSS
+  });
 
   socket.on("updateUserList", (users) => {
         
@@ -178,7 +232,7 @@ socket.on("selfDisconnect", () => {
     const message = messageInput.value.trim();
     if (message && currentUser) {
       addMessage(`${currentUser}: ${message}`, "sent");
-      socket.emit("chatMessage", { username: currentUser, message });
+      socket.emit("chatMessage", { username: currentUser, message, room });
       messageInput.value = ""; // Clear input
     }
   });
@@ -197,16 +251,16 @@ if (logoutButton) {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     localStorage.removeItem("isLoggedIn");
-    localStorage.clear(); // Clear all stored data
-    sessionStorage.clear(); // Clear session data
-    window.location.href = "index.html"; // Redirect to the homepage
+    localStorage.clear(); 
+    sessionStorage.clear();
+    window.location.href = "index.html";
   });
 }
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!escPressedOnce) {
-      // First ESC press: Show confirmation prompt
+      
       escPressedOnce = true;
       alert("Press ESC again to confirm ending the chat.");
       
@@ -223,28 +277,55 @@ document.addEventListener("keydown", (event) => {
 });
 
 function endChat() {
-  socket.emit("userDisconnected", currentUser);
-  sessionStorage.removeItem("username");
-  alert("Chat ended.");
-  window.location.href = "index.html"; // Or disable UI elements if needed
-}
-
-});
-
-// Notify server when user disconnects
-window.addEventListener("beforeunload", () => {
-  socket.emit("userDisconnected", localStorage.getItem("username"));
-});
-
-
-function clearAnonSessionOnExit() {
-  if (localStorage.getItem("isLoggedIn") !== "true") {
-    localStorage.removeItem("username"); // Remove only for anonymous users
-    localStorage.removeItem("isLoggedIn");
+  if (currentUser && socket) {
+    socket.emit("userDisconnected");
+    sessionStorage.removeItem("username");
+    alert("Chat ended.");
+    window.location.href = "index.html"; 
   }
 }
 
-// Handle when the user **closes the tab or browser**
-window.addEventListener("beforeunload", (event) => {
+});
+
+
+// Only disconnect when the window is actually being closed
+// The visibilitychange event helps differentiate between tab switching and closing
+let isWindowClosing = false;
+
+window.addEventListener('beforeunload', (event) => {
+  isWindowClosing = true;
+  // Only perform cleanup on actual window close, not tab switching
+  if (socket && isWindowClosing) {
+    socket.emit("userDisconnected");
+  }
   clearAnonSessionOnExit();
 });
+
+// Reset the flag when just switching tabs
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // User might be switching tabs or closing the window
+    // We'll set a timeout to distinguish between the two
+    setTimeout(() => {
+      // If we reach this point and the page isn't unloaded, 
+      // it was just a tab switch, not a window close
+      isWindowClosing = false;
+    }, 100);
+  } else if (document.visibilityState === 'visible' && socket) {
+    // User returned to the tab, ensure we're still connected
+    const urlParams = new URLSearchParams(window.location.search);
+    const room = urlParams.get("room");
+    const currentUser = sessionStorage.getItem("username");
+    
+    if (currentUser && room) {
+      socket.emit("userReconnected", { username: currentUser, room });
+    }
+  }
+});
+
+function clearAnonSessionOnExit() {
+  if (localStorage.getItem("isLoggedIn") !== "true") {
+    localStorage.removeItem("username");
+    localStorage.removeItem("isLoggedIn");
+  }
+}

@@ -1,5 +1,6 @@
 # Node modules (if you use Node.js later)
 node_modules/
+package-lock.json
 
 # Ignore vscode settings
 .vscode/
@@ -14,11 +15,48 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Project specific logs
+chat-app-development-log.log
+production-readiness-checklist.log
+project-audit-status-log.log
+
 # Operating system files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
 
 # PostgreSQL database files
 /data/
 *.backup
 *.dump
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+coverage/
+.nyc_output
+
+# Build directories
+dist/
+build/
+out/
+
+# Temporary files
+tmp/
+temp/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
