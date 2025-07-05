@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function generateRandomRoomName() {
     const timestamp = Date.now();
     const randomValue = Math.floor(Math.random() * 10000);
-    return `room-${timestamp}-${randomValue}`;
+    return `${timestamp}-${randomValue}`;
   }
   
 
