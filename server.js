@@ -15,18 +15,29 @@ const helmet = require('helmet');
 const csurf = require('csurf');
 const expressSanitizer = require('express-sanitizer');
 const cookieParser = require('cookie-parser');
+const logger = require('./logger');
+const Sentry = require("@sentry/node");
 
+Sentry.init({
+  enabled: false,
+  tracesSampleRate: 1.0,
+});
+
+/*
 let open;
 (async () => {
   open = (await import("open")).default;
 })();
-
+*/
 const app = express();
 const port = 3000;
 
 /*********************/
 /* Global Middleware */
 /*********************/
+if (Sentry.Handlers && Sentry.Handlers.requestHandler) {
+  app.use(Sentry.Handlers.requestHandler());
+}
 app.use(express.json()); // Parse JSON bodies
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(cookieParser()); // Add cookie parser before CSRF
@@ -51,6 +62,16 @@ app.use(limiter);
 
 // Apply input sanitization
 app.use(expressSanitizer());
+
+const morgan = require('morgan');
+
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => {
+      logger.info(message.trim());
+    },
+  },
+}));
 
 // CSRF error handling (commented out for now)
 // app.use((err, req, res, next) => {
@@ -91,7 +112,7 @@ function authenticateToken(req, res, next) {
         message: "Invalid or expired token",
       });
     }
-    console.log("Received Token:", token);
+    logger.info("Received Token:", token);
     req.user = user;
     next();
   });
@@ -102,7 +123,7 @@ function authenticateToken(req, res, next) {
 /********************************/
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log("POST /login route hit with data:", { username, password });
+  logger.info("POST /login route hit with data:", { username, password });
 
   try {
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [
@@ -136,7 +157,7 @@ app.post("/login", async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("Error querying the database:", err);
+    logger.error("Error querying the database:", err);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error!" });
@@ -160,7 +181,7 @@ app.post("/logout", (req, res) => {
 /**********************************/
 app.post("/register", async (req, res) => {
   const { firstName, lastName, email, username, password } = req.body;
-  console.log("POST /register route hit with data:", {
+  logger.info("POST /register route hit with data:", {
     firstName,
     lastName,
     email,
@@ -218,7 +239,7 @@ app.post("/register", async (req, res) => {
       user: newUser,
     });
   } catch (err) {
-    console.error("Error querying the database:", err);
+    logger.error("Error querying the database:", err);
     return res.status(500).json({
       success: false,
       message: "Internal server error!",
@@ -479,8 +500,42 @@ app.get("/messages/:room", async (req, res) => {
     }
 });
 
-server.listen(port, async () => {
-  console.log(`Server is running at http://localhost:${port}`);
-  const { default: open } = await import("open");
-  open(`http://localhost:${port}`);
+if (Sentry.Handlers && Sentry.Handlers.errorHandler) {
+  app.use(Sentry.Handlers.errorHandler());
+}
+
+app.get('/debug-sentry', (req, res) => {
+  throw new Error("This is a test error for Sentry!");
 });
+
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error: %o', {
+    error: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip
+  });
+
+  // Send a response to the client
+  res.status(500).json({
+    success: false,
+    message: 'An unexpected error occurred'
+  });
+});
+
+// Only start the server if this file is run directly
+if (require.main === module) {
+  server.listen(port, async () => {
+    logger.info(`Server is running at http://localhost:${port}`);
+    try {
+      const { default: open } = await import("open");
+      open(`http://localhost:${port}`);
+    } catch (err) {
+      logger.info("Browser open failed, but server is running");
+    }
+  });
+}
+
+// Export the app for testing
+module.exports = app;

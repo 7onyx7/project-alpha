@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@sentry/node": "^9.35.0",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -10,9 +11,15 @@
     "express-sanitizer": "^1.0.6",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
     "open": "^10.1.0",
     "pg": "^8.13.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "scripts": {
+    "test": "jest"
   },
   "version": "1.0.0"
 }
