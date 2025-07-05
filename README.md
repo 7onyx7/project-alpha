@@ -59,4 +59,4 @@ Contributions are welcome! Please follow these steps:
 3. Submit a pull request with a detailed description of your changes.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under a proprietary license. See the [LICENSE](LICENSE) file for details.
