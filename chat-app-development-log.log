@@ -57,6 +57,12 @@ Chat App Development Log
    - Set up CI/CD pipelines for automated deployment.
    - Monitor performance and uptime with tools like Prometheus or New Relic.
 
+11. **Monitoring & Logging**
+    - Integrated Winston for structured logging (console and file)
+    - Integrated Sentry for error monitoring and alerting
+    - Improved error handler middleware for diagnostics
+    - Updated .gitignore to exclude logs and sensitive files
+
 ---
 
 This log serves as a roadmap for building a production-ready chat application. Follow these steps to ensure a robust and scalable solution.

@@ -37,10 +37,11 @@ Production Readiness Checklist
 4. Error Handling & Logging
 ---------------------------
 [✓] Implement centralized error logging (e.g., Sentry, LogRocket, Winston).
-    - Using console.error for now, can be expanded
+    - Using Winston for structured logging and Sentry for error monitoring
 [✓] Show user-friendly error messages.
     - Added system messages for room status
 [✓] Set up alerts for critical errors.
+    - Sentry alerts configured
 
 5. Testing
 ----------
