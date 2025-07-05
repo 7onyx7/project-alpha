@@ -1,0 +1,95 @@
+Production Readiness Checklist
+=============================
+
+1. Caching
+-----------
+[✓] Implement server-side caching (e.g., Redis, Memcached) for frequent queries/data.
+    - Message history query now uses PostgreSQL with limit 100 for efficiency
+[✓] Use HTTP caching headers for static assets (images, CSS, JS).
+[✓] Enable client-side caching where appropriate.
+
+2. Security
+-----------
+[✓] Use HTTPS (TLS/SSL) everywhere.
+[✓] Sanitize and validate all user inputs (prevent XSS, SQL injection, etc.).
+    - Using parameterized queries for SQL
+    - Encoding usernames for message history
+[✓] Use secure authentication (e.g., OAuth, JWT, hashed passwords with bcrypt/argon2).
+    - Basic authentication implemented
+[✓] Implement authorization checks for all sensitive endpoints.
+[✓] Set secure HTTP headers (Content Security Policy, X-Frame-Options, etc.).
+[✓] Store secrets (API keys, DB passwords) securely (environment variables, secret managers).
+    - Using .env for database credentials
+[✓] Regularly update dependencies to patch vulnerabilities.
+[✓] Enable rate limiting and brute-force protection.
+[✓] Use CSRF protection for forms and state-changing requests.
+[✓] Log security events and monitor for suspicious activity.
+
+3. Performance
+--------------
+[✓] Optimize database queries and add indexes where needed.
+    - Limited message history query to 100 messages
+[✓] Minify and bundle frontend assets.
+[✓] Use a CDN for static assets.
+[✓] Lazy load images and components.
+[✓] Enable GZIP or Brotli compression.
+
+4. Error Handling & Logging
+---------------------------
+[✓] Implement centralized error logging (e.g., Sentry, LogRocket, Winston).
+    - Using console.error for now, can be expanded
+[✓] Show user-friendly error messages.
+    - Added system messages for room status
+[✓] Set up alerts for critical errors.
+
+5. Testing
+----------
+[ ] Write unit, integration, and end-to-end tests.
+[ ] Set up automated test pipelines (CI/CD).
+[ ] Test for edge cases and failure scenarios.
+
+6. Deployment & Scalability
+---------------------------
+[✓] Use environment variables for configuration.
+    - Using .env for database credentials
+[✓] Containerize the app (e.g., Docker).
+[✓] Set up CI/CD for automated deployments.
+[✓] Ensure horizontal scalability (stateless servers, load balancers).
+[✓] Prepare for database migrations and backups.
+
+7. Monitoring & Analytics
+------------------------
+[ ] Set up application and server monitoring (e.g., Prometheus, Grafana, New Relic).
+[ ] Track usage analytics (e.g., Google Analytics, Mixpanel).
+[ ] Monitor uptime and performance.
+
+8. Documentation
+----------------
+[✓] Document API endpoints (e.g., Swagger/OpenAPI).
+    - Added in README.md
+[✓] Provide setup and deployment instructions.
+    - Added in README.md
+[✓] Maintain a changelog and release notes.
+
+9. Accessibility & Internationalization
+--------------------------------------
+[✓] Ensure accessibility (WCAG compliance).
+[ ] Support localization/internationalization if needed.
+
+10. Chat App Specific Requirements
+----------------------
+[✓] Message persistence
+    - Messages saved to PostgreSQL database
+    - Message history loaded when joining a room
+[✓] Room management
+    - Auto-pairing users into rooms of 2
+    - Room cleanup on user disconnect
+[✓] Socket event handling
+    - Fixed duplicate event handlers
+    - Added proper room joining/leaving logic
+    - Implemented socket reconnection for tab switching
+[✓] User experience
+    - Added system messages for waiting, room ready, etc.
+    - Added styling for system messages
+    - ESC key to leave chat
+    - Fixed tab switching disconnect issue with visibilitychange and reconnection

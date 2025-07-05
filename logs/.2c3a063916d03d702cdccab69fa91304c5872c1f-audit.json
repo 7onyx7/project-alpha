@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\onyx\\Desktop\\dev\\project-alpha\\logs\\.2c3a063916d03d702cdccab69fa91304c5872c1f-audit.json",
+    "files": [
+        {
+            "date": 1751736401658,
+            "name": "C:\\Users\\onyx\\Desktop\\dev\\project-alpha\\logs\\application-2025-07-05.log",
+            "hash": "355c9bbf3c5699a692ebd8559fea41c2511cc4f3e263880880eb5f95b504aeac"
+        }
+    ],
+    "hashType": "sha256"
+}
