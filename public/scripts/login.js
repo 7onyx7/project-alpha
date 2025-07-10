@@ -8,16 +8,23 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginForm) {
     loginForm.addEventListener("submit", async function (event) {
       event.preventDefault();
+
+      // Add CSRF token to form
+      await csrfUtils.addTokenToForm(loginForm);
+
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
       const errorMessage = document.getElementById("errorMessage");
 
       try {
-        const response = await fetch("/login", {
+        // Get CSRF token and add to fetch options
+        const fetchOptions = await csrfUtils.addTokenToFetchOptions({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
         });
+
+        const response = await fetch("/login", fetchOptions);
 
         const result = await response.json();
 
@@ -131,7 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const response = await fetch("/register", {
+        // Get CSRF token and add to fetch options
+        const fetchOptions = await csrfUtils.addTokenToFetchOptions({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -142,6 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
             password,
           }),
         });
+
+        const response = await fetch("/register", fetchOptions);
 
         const data = await response.json();
 

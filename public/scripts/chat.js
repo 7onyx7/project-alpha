@@ -114,7 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadMessageHistory(room) {
     try {
-      const response = await fetch(`/messages/${encodeURIComponent(room)}`);
+      const fetchOptions = await csrfUtils.addTokenToFetchOptions();
+      const response = await fetch(`/messages/${encodeURIComponent(room)}`, fetchOptions);
       const data = await response.json();
       if (data.success && Array.isArray(data.messages)) {
         data.messages.forEach(msg => {
@@ -137,8 +138,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Modify fetch request to handle anonymous users correctly
   const fetchOptions = isLoggedIn
-    ? { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-    : {};
+    ? { 
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        credentials: 'include'
+      }
+    : { credentials: 'include' };
 
       // After generating currentUser in the frontend:
       fetch(`/chat?username=${encodeURIComponent(currentUser)}`, fetchOptions)

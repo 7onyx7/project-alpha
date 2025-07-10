@@ -29,6 +29,7 @@ let open;
   open = (await import("open")).default;
 })();
 */
+
 const app = express();
 const port = 3000;
 
@@ -57,8 +58,18 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CSRF is disabled for now - will be implemented with proper frontend integration
-// app.use(csurf({ cookie: true }));
+const csurf = require('csurf');
+app.use(csurf({ cookie: true })); // Enable CSRF protection
+app.get('/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({ success: false, message: 'Invalid CSRF token.' });
+  }
+  next(err);
+});
 
 // Apply input sanitization
 app.use(expressSanitizer());
@@ -72,6 +83,9 @@ app.use(morgan('combined', {
     },
   },
 }));
+
+const compression = require('compression');
+app.use(compression()); // Compress responses
 
 // CSRF error handling (commented out for now)
 // app.use((err, req, res, next) => {
@@ -123,6 +137,9 @@ function authenticateToken(req, res, next) {
 /********************************/
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  // Sanitize inputs
+  username = req.sanitize(username);
+
   logger.info("POST /login route hit with data:", { username, password });
 
   try {
@@ -181,12 +198,17 @@ app.post("/logout", (req, res) => {
 /**********************************/
 app.post("/register", async (req, res) => {
   const { firstName, lastName, email, username, password } = req.body;
+
+  firstName = req.sanitize(firstName);
+  lastName = req.sanitize(lastName);
+  email = req.sanitize(email);
+  username = req.sanitize(username);
+
   logger.info("POST /register route hit with data:", {
     firstName,
     lastName,
     email,
     username,
-    password,
   });
 
   // Basic checks
@@ -320,14 +342,33 @@ const io = new Server(server, {
   },
 });
 
+io.use((socket, next) => {
+  socket.sanitize = (data) => {
+      if (!data) return data;
+      if (typeof data === 'string') return data.replace(/<[^>]+>/g, '');
+      if (typeof data === 'object') {
+        const sanitized = {};
+        for (const key in data) {
+          sanitized[key] = typeof data[key] === 'string'
+            ? data[key].replace(/<[^>]+>/g, '')
+            : data[key];
+        }
+        return sanitized;
+      }
+      return data;
+  }; 
+  next();
+});
+
 const activeRooms = {}; // Tracks rooms and their users
 
 io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
     socket.on("userJoined", (data) => {
-        const { username, room: requestedRoom } = data;
-        let room = requestedRoom;
+        const sanitized = socket.sanitize(data);
+        const username = sanitized.username;
+        let room = sanitized.room;
 
         if (!username) {
             console.error("User joined without a username!");
@@ -362,6 +403,7 @@ io.on("connection", (socket) => {
             }
         }
 
+        // Check if the room is full
         if (activeRooms[room]?.length >= 2) {
             socket.emit("roomFull", { room });
             return;
@@ -399,15 +441,24 @@ io.on("connection", (socket) => {
         if (!userInfo) return;
         
         const { room } = userInfo;
+
+        const sanitized = socket.sanitize(data);
+        const sanitizedMessage = sanitized.message;
+        const sanitizedUsername = sanitized.username;
+
         try {
             await pool.query(
                 "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)",
-                [room, data.username, data.message]
+                [room, sanitizedUsername, sanitizedMessage]
             );
         } catch (err) {
             console.error("Error saving message to database:", err);
         }
-        io.to(room).emit("chatMessage", data);
+        io.to(room).emit("chatMessage", {
+            ...data,
+            message: sanitizedMessage,
+            username: sanitizedUsername
+        });
     });
 
     
@@ -478,7 +529,9 @@ io.on("connection", (socket) => {
     
     // Handle user reconnection
     socket.on("userReconnected", (data) => {
-        const { username, room } = data;
+        const sanitized = socket.sanitize(data);
+        const username = sanitized.username;
+        const room = sanitized.room;
         if (onlineUsers[socket.id] && onlineUsers[socket.id].disconnecting) {
             console.log(`${username} reconnected to ${room}`);
             onlineUsers[socket.id].disconnecting = false;
@@ -487,13 +540,22 @@ io.on("connection", (socket) => {
 });
 
 app.get("/messages/:room", async (req, res) => {
-    const { room } = req.params;
+    // Sanitize the room parameter
+    const room = req.sanitize(req.params.room);
+
     try {
       const result = await pool.query(
         "SELECT username, message, timestamp FROM messages WHERE room = $1 ORDER BY timestamp ASC LIMIT 100",
         [room]
       );
-      res.json({ success: true, messages: result.rows });
+
+      const sanitizedMessages = result.rows.map(msg => ({
+        username: req.sanitize(msg.username),
+        message: req.sanitize(msg.message),
+        timestamp: msg.timestamp
+      }));
+
+      res.json({ success: true, messages: sanitizedMessages });
     } catch (err) {
       console.error("Error fetching messages:", err);
       res.status(500).json({ success: false, message: "Error: Failed to fetch messages" });
