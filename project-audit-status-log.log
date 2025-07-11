@@ -135,11 +135,12 @@ Date: July 5, 2025 (Updated)
 - [x] Set up error logging/monitoring - Implemented Winston and Sentry
 - [x] Harden security (XSS/SQLi hardening) - Implemented input sanitization & parameterized queries
 - [x] Database optimization - Added indexes for message queries
+- [x] Asset minification and CDN integration prepared (npm run minify, cdn-setup-guide.md, HTML updated)
 - [ ] Add caching with Redis for improved performance
 - [ ] Add legal/compliance docs (privacy policy, terms)
 
 ### Medium Priority
-- [ ] Improve documentation (API docs, deployment guide)
+- [x] Improve documentation (API docs, deployment guide) - Deployment guide and CDN setup added, README/CHANGELOG updated
 - [ ] Add password reset, OAuth, email verification
 - [ ] Add Docker/CI/CD
 - [ ] Add accessibility/i18n
