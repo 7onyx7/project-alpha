@@ -60,3 +60,55 @@ Contributions are welcome! Please follow these steps:
 
 ## License
 This project is licensed under a proprietary license. See the [LICENSE](LICENSE) file for details.
+
+## Deployment
+
+### Heroku Deployment
+1. Create a Heroku account at [heroku.com](https://heroku.com)
+2. Install the Heroku CLI and login:
+   ```bash
+   npm install -g heroku
+   heroku login
+   ```
+3. Initialize a Git repository (if not already done):
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   ```
+4. Create a Heroku app:
+   ```bash
+   heroku create project-alpha-app-unique-name
+   ```
+5. Add the PostgreSQL add-on:
+   ```bash
+   heroku addons:create heroku-postgresql:hobby-dev
+   ```
+6. Set your JWT secret:
+   ```bash
+   heroku config:set JWT_SECRET=your_secure_jwt_secret_here
+   ```
+7. Push your code to Heroku:
+   ```bash
+   git push heroku main
+   ```
+8. Access your app at the provided Heroku URL.
+
+### CDN Setup
+Follow the instructions in [cdn-setup-guide.md](cdn-setup-guide.md) to set up a CDN for your static assets.
+
+### SSL/HTTPS
+Heroku automatically provides SSL certificates for all apps on the `*.herokuapp.com` domain. If you're using a custom domain, follow Heroku's instructions to add your own SSL certificate.
+
+### Database Scaling
+If you need to scale your database:
+1. Upgrade your PostgreSQL plan in the Heroku dashboard
+2. Consider implementing connection pooling
+3. Optimize your queries and add appropriate indexes
+
+### Monitoring
+1. Enable application monitoring:
+   ```bash
+   heroku addons:create newrelic:wayne
+   ```
+2. Set up Sentry for error tracking (already configured in the code)

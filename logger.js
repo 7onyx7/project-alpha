@@ -1,8 +1,7 @@
 const { createLogger, format, transports } = require('winston');
 const path = require('path');
 
-// removed for now to get server running
-// const DailyRotateFile = require('winston-daily-rotate-file');
+const DailyRotateFile = require('winston-daily-rotate-file');
 
 // Custom format for console logs
 const consoleFormat = format.printf(({ level, message, timestamp, ...metadata }) => {
@@ -16,7 +15,7 @@ const logger = createLogger({
     format.timestamp(),
     format.errors({ stack: true }),
     format.splat(),
-    format.json()
+    format.json(),
   ),
   transports: [
     // Console transport with pretty printing
@@ -37,13 +36,12 @@ const logger = createLogger({
       filename: path.join(__dirname, 'logs', 'combined.log') 
     }),
     // Daily rotating file
-   /* new DailyRotateFile({
+    new DailyRotateFile({
       filename: path.join(__dirname, 'logs', 'application-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d'
     })
-    */
   ],
 });
 

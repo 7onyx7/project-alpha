@@ -1,6 +1,6 @@
 <!--****************** Author: Romeo Shamoun                     ******************-->
 <!--****************** Date: 01/07/2025                          ******************-->
-<!--****************** Version: 0.4                              ******************-->
+<!--****************** Version: 1.0                              ******************-->
 <!--****************** Description: Authentication/Registration  ******************-->
 <!--****************** Project Name: PROJECT ALPHA               ******************-->
 
@@ -9,11 +9,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login</title>
+    <title>Login - Project Alpha</title>
+    <!-- Regular JavaScript (fallback) -->
     <script src="scripts/scripts.js"></script> 
     <script src="scripts/csrf.js"></script>
     <script src="scripts/login.js"></script>
+    <!-- Minified JavaScript (will be used when available) -->
+    <script src="scripts/scripts.min.js" onerror="this.onerror=null;this.src='scripts/scripts.js';"></script>
+    <script src="scripts/csrf.min.js" onerror="this.onerror=null;this.src='scripts/csrf.js';"></script>
+    <script src="scripts/login.min.js" onerror="this.onerror=null;this.src='scripts/login.js';"></script>
+    <!-- Regular CSS (fallback) -->
     <link rel="stylesheet" href="styles/login.css" />
+    <!-- Minified CSS (will be used when available) -->
+    <link rel="stylesheet" href="styles/login.min.css" onerror="this.onerror=null;this.href='styles/login.css';" />
   </head>
   <body>
     <div class="login-container">

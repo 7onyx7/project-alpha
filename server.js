@@ -30,8 +30,18 @@ let open;
 })();
 */
 
+// Check required environment variables
+['DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_NAME', 'DB_PORT', 'JWT_SECRET'].forEach((key) => {
+  if (!process.env[key]) {
+    logger.error(`Missing required environment variable: ${key}`);
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+});
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const corsOrigin = isDevelopment ? "http://localhost:3000" : process.env.CORS_ORIGIN || "*";
 
 /*********************/
 /* Global Middleware */
@@ -40,7 +50,7 @@ if (Sentry.Handlers && Sentry.Handlers.requestHandler) {
   app.use(Sentry.Handlers.requestHandler());
 }
 app.use(express.json()); // Parse JSON bodies
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(cookieParser()); // Add cookie parser before CSRF
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/register", (req, res) => {
@@ -51,22 +61,33 @@ app.get("/register", (req, res) => {
 app.use(helmet());
 
 // Apply rate limiting
-const limiter = rateLimit({
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: "Too many requests from this IP, please try again later."
 });
-app.use(limiter);
+app.use('/api/', apiLimiter);
 
-const csurf = require('csurf');
-app.use(csurf({ cookie: true })); // Enable CSRF protection
+// Also apply a more lenient limit to all routes
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Higher limit for general routes
+  message: "Too many requests from this IP, please try again later."
+});
+app.use(generalLimiter);
+
+// Enable CSRF protection
+app.use(csurf({ cookie: true }));
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).json({ success: false, message: 'Invalid CSRF token.' });
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Your session has expired or is invalid. Please refresh the page and try again.' 
+    });
   }
   next(err);
 });
@@ -121,11 +142,12 @@ function authenticateToken(req, res, next) {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
+      const message = err.name === "TokenExpiredError" 
+        ? "Your session has expired. Please log in again."
+        : "Invalid token.";
+      return res.status(403).json({ success: false, message });
     }
+    
     logger.info("Received Token:", token);
     req.user = user;
     next();
@@ -136,7 +158,7 @@ function authenticateToken(req, res, next) {
 /*       Login endpoint         */
 /********************************/
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
   // Sanitize inputs
   username = req.sanitize(username);
 
@@ -197,7 +219,7 @@ app.post("/logout", (req, res) => {
 /*      Register endpoint         */
 /**********************************/
 app.post("/register", async (req, res) => {
-  const { firstName, lastName, email, username, password } = req.body;
+  let { firstName, lastName, email, username, password } = req.body;
 
   firstName = req.sanitize(firstName);
   lastName = req.sanitize(lastName);
@@ -241,9 +263,11 @@ app.post("/register", async (req, res) => {
     );
 
     if (userExists.rows.length > 0) {
+      const existingUser = userExists.rows[0];
+      const conflictField = existingUser.username === username ? "username" : "email";
       return res.status(409).json({
         success: false,
-        message: "Username already exists!",
+        message: `The ${conflictField} is already in use!`,
       });
     }
 
@@ -343,14 +367,26 @@ const io = new Server(server, {
 });
 
 io.use((socket, next) => {
+  // Enhanced sanitization function - still basic but more thorough
   socket.sanitize = (data) => {
       if (!data) return data;
-      if (typeof data === 'string') return data.replace(/<[^>]+>/g, '');
+      if (typeof data === 'string') {
+        // More thorough XSS protection - removes script content too
+        return data
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+=/gi, '');
+      }
       if (typeof data === 'object') {
         const sanitized = {};
         for (const key in data) {
           sanitized[key] = typeof data[key] === 'string'
-            ? data[key].replace(/<[^>]+>/g, '')
+            ? data[key]
+              .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+              .replace(/<[^>]+>/g, '')
+              .replace(/javascript:/gi, '')
+              .replace(/on\w+=/gi, '')
             : data[key];
         }
         return sanitized;
@@ -452,7 +488,12 @@ io.on("connection", (socket) => {
                 [room, sanitizedUsername, sanitizedMessage]
             );
         } catch (err) {
-            console.error("Error saving message to database:", err);
+            logger.error("Error saving message to database:", {
+                error: err.message,
+                stack: err.stack,
+                room: room,
+                username: sanitizedUsername
+            });
         }
         io.to(room).emit("chatMessage", {
             ...data,
@@ -549,15 +590,14 @@ app.get("/messages/:room", async (req, res) => {
         [room]
       );
 
-      const sanitizedMessages = result.rows.map(msg => ({
-        username: req.sanitize(msg.username),
-        message: req.sanitize(msg.message),
-        timestamp: msg.timestamp
-      }));
-
-      res.json({ success: true, messages: sanitizedMessages });
+      // Simply return the query results - no need to re-sanitize data from the database
+      res.json({ success: true, messages: result.rows });
     } catch (err) {
-      console.error("Error fetching messages:", err);
+      logger.error("Error fetching messages:", {
+        error: err.message,
+        stack: err.stack,
+        room: room
+      });
       res.status(500).json({ success: false, message: "Error: Failed to fetch messages" });
     }
 });
@@ -588,13 +628,58 @@ app.use((err, req, res, next) => {
 
 // Only start the server if this file is run directly
 if (require.main === module) {
+  // Set up graceful shutdown
+  const gracefulShutdown = (signal) => {
+    logger.info(`Received ${signal}. Shutting down gracefully...`);
+    server.close(() => {
+      logger.info('HTTP server closed.');
+      // Close database connection
+      pool.end(() => {
+        logger.info('Database connection closed.');
+        process.exit(0);
+      });
+    });
+    
+    // Force close after 10s if not closed gracefully
+    setTimeout(() => {
+      logger.error('Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000);
+  };
+  
+  // Listen for termination signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    logger.error('Uncaught exception', {
+      error: err.message,
+      stack: err.stack
+    });
+    gracefulShutdown('uncaughtException');
+  });
+  
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', {
+      promise: promise,
+      reason: reason
+    });
+  });
+  
+  // Start the server
   server.listen(port, async () => {
     logger.info(`Server is running at http://localhost:${port}`);
-    try {
-      const { default: open } = await import("open");
-      open(`http://localhost:${port}`);
-    } catch (err) {
-      logger.info("Browser open failed, but server is running");
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        const { default: open } = await import("open");
+        open(`http://localhost:${port}`);
+      } catch (err) {
+        logger.info("Browser open failed, but server is running");
+      }
     }
   });
 }

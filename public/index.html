@@ -1,6 +1,6 @@
 <!--****************** Author: Romeo Shamoun                     ******************-->
 <!--****************** Date: 01/07/2025                          ******************-->
-<!--****************** Version: 0.4                              ******************-->
+<!--****************** Version: 1.0                              ******************-->
 <!--****************** Description: Main Landing Page            ******************-->
 <!--****************** Project Name: PROJECT ALPHA               ******************-->
 
@@ -9,8 +9,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome!</title>
+    <title>Welcome to Project Alpha!</title>
+    <!-- Regular CSS (fallback) -->
     <link rel="stylesheet" href="styles/styles.css" />
+    <!-- Minified CSS (will be used when available) -->
+    <link rel="stylesheet" href="styles/styles.min.css" onerror="this.onerror=null;this.href='styles/styles.css';" />
+    <!-- For production with CDN, uncomment: -->
+    <!-- <link rel="stylesheet" href="https://cdn.yourdomain.com/styles/styles.min.css" onerror="this.onerror=null;this.href='styles/styles.min.css';" /> -->
     <script src="scripts/csrf.js"></script>
   </head>
   <body>
@@ -32,7 +37,12 @@
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
+    <!-- Regular JS (fallback) -->
     <script src="scripts/scripts.js"></script>
+    <!-- Minified JS (will be used when available) -->
+    <script src="scripts/scripts.min.js" onerror="this.onerror=null;this.src='scripts/scripts.js';"></script>
+    <!-- For production with CDN, uncomment: -->
+    <!-- <script src="https://cdn.yourdomain.com/scripts/scripts.min.js" onerror="this.onerror=null;this.src='scripts/scripts.min.js';"></script> -->
   
   </body>
 </html>

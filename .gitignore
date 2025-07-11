@@ -50,6 +50,12 @@ coverage/
 # Build directories
 dist/
 build/
+
+# Minified files (should be generated during deployment)
+/public/scripts/*.min.js
+/public/styles/*.min.css
+dist/
+build/
 out/
 
 # Temporary files

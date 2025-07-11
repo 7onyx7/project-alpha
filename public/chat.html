@@ -3,9 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Room</title>
+    <title>Chat Room - Project Alpha</title>
+    <!-- Regular CSS (fallback) -->
     <link rel="stylesheet" href="styles/chat.css" />
+    <!-- Minified CSS (will be used when available) -->
+    <link rel="stylesheet" href="styles/chat.min.css" onerror="this.onerror=null;this.href='styles/chat.css';" />
+    <!-- Regular JavaScript (fallback) -->
     <script src="scripts/csrf.js"></script>
+    <!-- Minified JavaScript (will be used when available) -->
+    <script src="scripts/csrf.min.js" onerror="this.onerror=null;this.src='scripts/csrf.js';"></script>
   </head>
   <body>
     <div class="chat-container">
@@ -37,7 +43,11 @@
     </div>
     <button id="logoutButton">Logout</button>
     <script src="/socket.io/socket.io.js"></script>
+    <!-- Regular JavaScript (fallback) -->
     <script src="scripts/scripts.js"></script>
     <script src="scripts/chat.js"></script>
+    <!-- Minified JavaScript (will be used when available) -->
+    <script src="scripts/scripts.min.js" onerror="this.onerror=null;this.src='scripts/scripts.js';"></script>
+    <script src="scripts/chat.min.js" onerror="this.onerror=null;this.src='scripts/chat.js';"></script>
   </body>
 </html>

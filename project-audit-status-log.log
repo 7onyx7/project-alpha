@@ -72,16 +72,20 @@ Date: July 5, 2025 (Updated)
 - Note: Winston and Sentry are now fully integrated for logging and monitoring.
 
 ### 7. Performance & Caching
-**Status:** 25% Complete
+**Status:** 65% Complete
 - ✅ Express.js foundation
 - ✅ Query optimization (PostgreSQL indexes)
 - ✅ GZIP compression (via compression middleware)
-- ❌ Asset minification, CDN
+- ✅ CDN integration prepared (see cdn-setup-guide.md)
+- ✅ Asset minification scripts added (npm run minify)
 - ❌ Caching (Redis, etc.)
 
 ### 8. Deployment & Scalability
-**Status:** 15% Complete
+**Status:** 50% Complete
 - ✅ .env config
+- ✅ Procfile for Heroku deployment
+- ✅ Deployment documentation (in README.md)
+- ✅ Node engine specification
 - ❌ Docker, CI/CD, load balancing, scaling
 
 ### 9. Monitoring & Analytics
@@ -94,10 +98,12 @@ Date: July 5, 2025 (Updated)
 - Note: Sentry and Winston are active for error and event monitoring.
 
 ### 10. Documentation
-**Status:** 50% Complete
+**Status:** 85% Complete
 - ✅ README.md expanded
 - ✅ CHANGELOG.md created
-- ❌ API docs, deployment guide
+- ✅ Deployment guide (in README.md)
+- ✅ CDN setup guide
+- ❌ API docs
 
 ### 11. Accessibility & Internationalization
 **Status:** 0% Complete
