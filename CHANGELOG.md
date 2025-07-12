@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.0.5] - 2025-07-11
+### Added
+- Implemented email service for password reset links
+- Added password visibility toggle on reset password page
+- Enhanced password validation with real-time feedback
+- Added password strength meter on reset page
+
+## [1.0.4] - 2025-07-11
+  - Added "Forgot Password" button to login page
+  - Created password reset token system
+  - Added password reset routes and endpoints
+  - Created reset password page with password strength meter
+- Enhanced database schema documentation
+- Created comprehensive security tables
+  - Added audit_log table for tracking sensitive operations
+  - Added banned_users table for moderation
+  - Added reports table for user reporting
+  - Added user_sessions table for session management
+- Added password reset testing script
+- Updated README with new security features
+- Created detailed password reset documentation
+
+### Fixed
+- Fixed API endpoint for password reset to follow RESTful conventions
+- Fixed server initialization issues with AdminAuth
+- Ensured environment variables include NODE_ENV
+- Added error logging for password reset process
+
+### Security
+- Implemented token-based password reset with expiration
+- Added rate limiting for password reset requests
+- Created audit logging for password reset operations
+- Implemented secure token validation and single-use tokens
+
+## [1.0.3] - 2025-07-11
+### Changed
+- Renamed project from "Project Alpha" to "Bantrhaus"
+- Updated all references in code, HTML, and documentation
+- Updated package.json name and keywords
+- Updated HTML titles and headers
+- Updated CDN setup guide with new domain name references
+
 ## [1.0.2] - 2025-07-10
 ### Added
 - Created deployment guide in README.md

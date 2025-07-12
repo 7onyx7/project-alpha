@@ -1,5 +1,6 @@
 /**************************************/
 /*            server.js               */
+/*          BANTRHAUS v1.0.0          */
 /**************************************/
 
 require("dotenv").config();
@@ -12,11 +13,36 @@ const cors = require("cors");
 const http = require("http");
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-const csurf = require('csurf');
 const expressSanitizer = require('express-sanitizer');
 const cookieParser = require('cookie-parser');
 const logger = require('./logger');
 const Sentry = require("@sentry/node");
+const CustomCSRF = require('./custom-csrf');
+const { 
+  SecurityConfig, 
+  validateUsername, 
+  validateMessage, 
+  validateEmail, 
+  validatePassword, 
+  validateAge,
+  createReport,
+  securityMiddleware,
+  createSecurityTables,
+  banIP,
+  isIPBanned,
+  recordViolation,
+  checkForVPN,
+  ipViolations,
+  bannedIPs,
+  rateLimiters 
+} = require('./security');
+const ModerationSystem = require('./moderation');
+const { termsOfService, privacyPolicy, communityGuidelines } = require('./legal');
+const EnhancedSecurity = require('./enhanced-security');
+const DeploymentSecurity = require('./deployment-security');
+const { AdminAuth } = require('./admin-auth');
+const { MonetizationSystem, MonetizationConfig } = require('./monetization');
+const SimpleMonetization = require('./simple-monetization');
 
 Sentry.init({
   enabled: false,
@@ -43,6 +69,12 @@ const port = process.env.PORT || 3000;
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const corsOrigin = isDevelopment ? "http://localhost:3000" : process.env.CORS_ORIGIN || "*";
 
+// Initialize security systems
+let moderationSystem;
+let enhancedSecurity;
+let csrfProtection;
+let adminAuth;
+
 /*********************/
 /* Global Middleware */
 /*********************/
@@ -53,20 +85,95 @@ app.use(express.json()); // Parse JSON bodies
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(cookieParser()); // Add cookie parser before CSRF
 app.use(express.static(path.join(__dirname, "public")));
+
+// Security middleware
+app.use(securityMiddleware.validateInput);
+app.use(securityMiddleware.logSuspiciousActivity);
+// app.use(securityMiddleware.checkIPBan);  // Temporarily disabled for testing
+// app.use(securityMiddleware.checkVPN);   // Temporarily disabled for testing
+
+// Enhanced security middleware
+app.use(async (req, res, next) => {
+  if (enhancedSecurity) {
+    // Check for suspicious IP
+    const ipCheck = await enhancedSecurity.checkSuspiciousIP(req.ip);
+    if (ipCheck.suspicious) {
+      logger.warn('Suspicious IP detected', { ip: req.ip, reason: ipCheck.reason });
+      return res.status(429).json({ 
+        success: false, 
+        message: 'Too many requests. Please try again later.' 
+      });
+    }
+
+    // Bot detection for sensitive routes
+    if (req.path.includes('/register') || req.path.includes('/login')) {
+      const botCheck = await enhancedSecurity.detectBot(req);
+      if (botCheck.isBot && botCheck.confidence > 70) {
+        logger.warn('Bot detected', { ip: req.ip, reasons: botCheck.reasons });
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Access denied. Please complete verification.' 
+        });
+      }
+    }
+  }
+  next();
+});
+
+// Age verification redirect
+app.use((req, res, next) => {
+  // Skip age verification for API routes, static files, and auth routes
+  if (req.path.startsWith('/api/') || 
+      req.path.startsWith('/legal/') ||
+      req.path.includes('.') ||
+      req.path === '/age-verification.html' ||
+      req.path === '/csrf-token' ||
+      req.path === '/reset-password' ||
+      req.path === '/reset-password.html' ||
+      req.path === '/reset-password-complete' ||
+      req.path === '/login' ||
+      req.path === '/register' ||
+      req.path === '/logout' ||
+      req.path === '/') {  // Allow home page access
+    return next();
+  }
+  
+  // Check if user has verified age
+  const ageVerified = req.cookies.ageVerified;
+  if (!ageVerified) {
+    logger.info('Age verification required for:', { path: req.path, ip: req.ip });
+    return res.redirect('/age-verification.html');
+  }
+  
+  next();
+});
+
 app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "register.html"));
 });
 
 // Apply security headers
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false
+}));
 
-// Apply rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later."
-});
-app.use('/api/', apiLimiter);
+// Enhanced rate limiting (temporarily disabled for testing)
+// app.use('/api/', rateLimiters.loginLimiter);
+// app.use('/login', rateLimiters.loginLimiter);
+// app.use('/register', rateLimiters.registerLimiter);
 
 // Also apply a more lenient limit to all routes
 const generalLimiter = rateLimit({
@@ -77,9 +184,20 @@ const generalLimiter = rateLimit({
 app.use(generalLimiter);
 
 // Enable CSRF protection
-app.use(csurf({ cookie: true }));
+app.use((req, res, next) => {
+  if (csrfProtection) {
+    csrfProtection.middleware()(req, res, next);
+  } else {
+    next();
+  }
+});
+
 app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+  if (csrfProtection) {
+    csrfProtection.getTokenRoute()(req, res);
+  } else {
+    res.json({ csrfToken: 'csrf-not-initialized' });
+  }
 });
 
 app.use((err, req, res, next) => {
@@ -125,7 +243,34 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  max: 20, // Maximum number of clients
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
+
+// Security initialization (manual database setup required)
+(async () => {
+  try {
+    // Note: Database tables must be created manually before running in production
+    // Run: node -e "require('./security').createSecurityTables(pool)"
+    
+    moderationSystem = new ModerationSystem(pool);
+    enhancedSecurity = new EnhancedSecurity(pool);
+    csrfProtection = new CustomCSRF();
+    adminAuth = new AdminAuth(pool);
+    
+    logger.info('Security modules initialized (database tables must be created manually)');
+    
+    // Run deployment security checks in development
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('Running security audit...');
+      await DeploymentSecurity.runPreDeploymentChecks(pool);
+    }
+  } catch (error) {
+    logger.error('Failed to initialize security systems', { error: error.message });
+  }
+})();
 
 /**************************************/
 /* Helper Functions                   */
@@ -154,52 +299,233 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Admin authentication middleware
+function authenticateAdmin(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1] || req.cookies?.adminToken;
+  
+  if (!adminAuth) {
+    return res.status(500).json({ success: false, message: 'Admin system not initialized' });
+  }
+  
+  const verification = adminAuth.verifyAdminSession(token);
+  if (!verification.valid) {
+    return res.status(401).json({ success: false, message: verification.error || 'Admin authentication required' });
+  }
+  
+  req.admin = verification.admin;
+  next();
+}
+
+// Check if user is admin (for client-side display)
+function checkAdminStatus(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
+  
+  if (!token) {
+    req.isAdmin = false;
+    return next();
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    
+    // Check if user is admin by looking up their role in the database
+    pool.query("SELECT role FROM users WHERE id = $1", [decoded.id])
+      .then(result => {
+        if (result.rows.length > 0) {
+          req.isAdmin = result.rows[0].role === 'admin';
+        } else {
+          req.isAdmin = false;
+        }
+        next();
+      })
+      .catch(err => {
+        logger.error("Error checking admin status", { error: err.message, userId: decoded.id });
+        req.isAdmin = false;
+        next();
+      });
+  } catch (err) {
+    req.isAdmin = false;
+    next();
+  }
+}
+
 /********************************/
 /*       Login endpoint         */
 /********************************/
 app.post("/login", async (req, res) => {
   let { username, password } = req.body;
-  // Sanitize inputs
-  username = req.sanitize(username);
+  
+  // Log the incoming request details
+  logger.info("POST /login route hit", { 
+    username: username || "undefined", 
+    hasPassword: !!password,
+    ip: req.ip,
+    userAgent: req.get('User-Agent') || 'Unknown'
+  });
 
-  logger.info("POST /login route hit with data:", { username, password });
+  // Check if required fields are provided
+  if (!username || !password) {
+    logger.warn("Login attempt with missing credentials", { 
+      username: username || "missing", 
+      password: password ? "provided" : "missing",
+      ip: req.ip 
+    });
+    return res.status(400).json({
+      success: false,
+      message: "Username and password are required."
+    });
+  }
+  
+  // Enhanced validation
+  const usernameValidation = validateUsername(username);
+  if (!usernameValidation.valid) {
+    logger.warn("Login attempt with invalid username", { 
+      username, 
+      error: usernameValidation.error,
+      ip: req.ip 
+    });
+    return res.status(400).json({
+      success: false,
+      message: usernameValidation.error
+    });
+  }
+  username = usernameValidation.cleaned;
 
   try {
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [
-      username,
-    ]);
-
-    if (result.rows.length === 0) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid username or password." });
+    // Check if user exists
+    logger.info("Checking if user exists in database", { username });
+    const userResult = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+    
+    if (userResult.rows.length === 0) {
+      logger.warn("Login attempt for non-existent user", { username, ip: req.ip });
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid username or password." 
+      });
     }
 
-    const user = result.rows[0];
+    const user = userResult.rows[0];
+    logger.info("User found in database", { 
+      userId: user.id, 
+      username: user.username,
+      hasPassword: !!user.password 
+    });
+    
+    // Check if user is banned
+    if (moderationSystem) {
+      try {
+        const isBanned = await moderationSystem.isUserBanned(user.id);
+        if (isBanned) {
+          logger.warn("Login attempt for banned user", { 
+            userId: user.id, 
+            username: user.username, 
+            ip: req.ip 
+          });
+          return res.status(403).json({
+            success: false,
+            message: "Your account has been suspended. Contact support for more information."
+          });
+        }
+      } catch (banCheckError) {
+        logger.error("Error checking ban status", { 
+          error: banCheckError.message, 
+          userId: user.id, 
+          username: user.username 
+        });
+      }
+    }
+
+    // Verify password
+    logger.info("Verifying password for user", { username });
     const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid username or password." });
+      logger.warn("Login attempt with incorrect password", { 
+        userId: user.id, 
+        username: user.username, 
+        ip: req.ip 
+      });
+      
+      // Log failed login attempt
+      if (moderationSystem) {
+        try {
+          await moderationSystem.logUserAction(user.id, 'login_failed', { 
+            ip: req.ip,
+            reason: 'incorrect_password'
+          }, req);
+        } catch (logError) {
+          logger.error("Error logging failed login attempt", { 
+            error: logError.message, 
+            userId: user.id, 
+            username: user.username 
+          });
+        }
+      }
+      
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid username or password." 
+      });
     }
 
     // Generate the JWT
+    logger.info("Password verified, generating JWT", { username });
     const token = jwt.sign(
       { id: user.id, username: user.username },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
+    // Log successful login
+    if (moderationSystem) {
+      try {
+        await moderationSystem.logUserAction(user.id, 'login_success', { 
+          ip: req.ip,
+          userAgent: req.get('User-Agent') || 'Unknown'
+        }, req);
+      } catch (logError) {
+        logger.error("Error logging successful login", { 
+          error: logError.message, 
+          userId: user.id, 
+          username: user.username 
+        });
+      }
+    }
+
+    // Set age verification cookie (if user is logged in, assume verified)
+    res.cookie('ageVerified', 'true', { 
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    logger.info("Login successful", { 
+      userId: user.id, 
+      username: user.username, 
+      ip: req.ip 
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful!",
       token,
+      username: user.username,
+      userId: user.id,
+      role: user.role || 'user'
     });
   } catch (err) {
-    logger.error("Error querying the database:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error!" });
+    logger.error("Database error during login", { 
+      error: err.message, 
+      stack: err.stack,
+      username: username || "undefined",
+      ip: req.ip 
+    });
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: "Internal server error!" 
+    });
   }
 });
 
@@ -219,70 +545,108 @@ app.post("/logout", (req, res) => {
 /*      Register endpoint         */
 /**********************************/
 app.post("/register", async (req, res) => {
-  let { firstName, lastName, email, username, password } = req.body;
+  const { firstName, lastName, email, username, password, birthdate } = req.body;
 
-  firstName = req.sanitize(firstName);
-  lastName = req.sanitize(lastName);
-  email = req.sanitize(email);
-  username = req.sanitize(username);
+  // Enhanced validation with security checks
+  const usernameValidation = validateUsername(username);
+  if (!usernameValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      message: usernameValidation.error
+    });
+  }
 
-  logger.info("POST /register route hit with data:", {
-    firstName,
-    lastName,
-    email,
-    username,
+  const emailValidation = enhancedSecurity 
+    ? await enhancedSecurity.validateEmailSecurity(email)
+    : validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      message: emailValidation.error
+    });
+  }
+
+  const passwordValidation = enhancedSecurity 
+    ? enhancedSecurity.validatePasswordComplexity(password)
+    : validatePassword(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      message: passwordValidation.recommendations?.[0] || passwordValidation.error
+    });
+  }
+
+  // Age verification
+  if (birthdate) {
+    const ageValidation = validateAge(birthdate);
+    if (!ageValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: ageValidation.error
+      });
+    }
+  }
+
+  logger.info("POST /register route hit", {
+    username: usernameValidation.cleaned,
+    email: emailValidation.cleaned,
+    ip: req.ip
   });
 
-  // Basic checks
-  if (!firstName || !lastName || !email || !username || !password) {
+  // Basic checks for required fields
+  if (!firstName || !lastName || !emailValidation.cleaned || !usernameValidation.cleaned || !password) {
     return res.status(400).json({
       success: false,
       message: "All fields are required!",
     });
   }
 
-  if (password.length < 6) {
-    return res.status(400).json({
-      success: false,
-      message: "Password must be at least 6 characters.",
-    });
-  }
-
-  // Email pattern check
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid email format." });
-  }
-
   try {
     const userExists = await pool.query(
       "SELECT * FROM users WHERE username = $1 OR email = $2",
-      [username, email]
+      [usernameValidation.cleaned, emailValidation.cleaned]
     );
 
     if (userExists.rows.length > 0) {
       const existingUser = userExists.rows[0];
-      const conflictField = existingUser.username === username ? "username" : "email";
+      const conflictField = existingUser.username === usernameValidation.cleaned ? "username" : "email";
       return res.status(409).json({
         success: false,
         message: `The ${conflictField} is already in use!`,
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const result = await pool.query(
-      "INSERT INTO users (first_name, last_name, email, username, password) VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, last_name, email, username",
-      [firstName, lastName, email, username, hashedPassword]
+      "INSERT INTO users (first_name, last_name, email, username, password, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, first_name, last_name, email, username",
+      [req.sanitize(firstName), req.sanitize(lastName), emailValidation.cleaned, usernameValidation.cleaned, hashedPassword]
     );
 
     const newUser = result.rows[0];
+    
+    // Log registration
+    if (moderationSystem) {
+      await moderationSystem.logUserAction(newUser.id, 'account_created', { ip: req.ip }, req);
+    }
+
+    // Set age verification cookie
+    res.cookie('ageVerified', 'true', { 
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    });
+
     return res.status(201).json({
       success: true,
       message: "User created successfully!",
-      user: newUser,
+      user: {
+        id: newUser.id,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        email: newUser.email,
+        username: newUser.username
+      },
     });
   } catch (err) {
     logger.error("Error querying the database:", err);
@@ -297,7 +661,7 @@ app.post("/register", async (req, res) => {
 /* GET /chat - Fetch Chat Users */
 /********************************/
 app.get("/chat", async (req, res) => {
-  
+  let username;
 
   // Check if Authorization Header Exists
   const authHeader = req.headers["authorization"];
@@ -346,6 +710,148 @@ app.get("/chat", async (req, res) => {
     username, // Send the assigned username
   });
 
+});
+
+/********************************/
+/*       API Routes             */
+/********************************/
+
+// Report submission endpoint
+app.post("/api/report", async (req, res) => {
+  try {
+    const { reportedUsername, reason, details, messageContent, room } = req.body;
+    
+    if (!reportedUsername || !reason || !details) {
+      return res.status(400).json({
+        success: false,
+        message: "Username, reason, and details are required"
+      });
+    }
+
+    // Get reported user ID
+    const userResult = await pool.query("SELECT id FROM users WHERE username = $1", [reportedUsername]);
+    const reportedUserId = userResult.rows.length > 0 ? userResult.rows[0].id : null;
+
+    // Create report
+    const result = await createReport(pool, {
+      reporterId: null, // Anonymous reports for now
+      reportedUserId,
+      messageId: null,
+      reason,
+      content: `${details}\n\nMessage: ${messageContent || 'N/A'}`,
+      room
+    });
+
+    if (result.success) {
+      logger.info('Report submitted', { 
+        reportedUsername, 
+        reason, 
+        ip: req.ip,
+        reportId: result.reportId 
+      });
+      
+      res.json({ success: true, message: "Report submitted successfully" });
+    } else {
+      res.status(500).json({ success: false, message: result.error });
+    }
+  } catch (error) {
+    logger.error('Error processing report', { error: error.message });
+    res.status(500).json({ success: false, message: "Failed to submit report" });
+  }
+});
+
+// Age verification endpoint
+app.post("/api/age-verify", (req, res) => {
+  const { birthdate, confirmed } = req.body;
+  
+  if (!confirmed) {
+    return res.status(400).json({
+      success: false,
+      message: "Age confirmation is required"
+    });
+  }
+
+  if (birthdate) {
+    const ageValidation = validateAge(birthdate);
+    if (!ageValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: ageValidation.error
+      });
+    }
+  }
+
+  // Set age verification cookie
+  res.cookie('ageVerified', 'true', { 
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production'
+  });
+
+  res.json({ success: true, message: "Age verified successfully" });
+});
+
+// Legal documents
+app.get("/legal/terms", (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(termsOfService);
+});
+
+app.get("/legal/privacy", (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(privacyPolicy);
+});
+
+app.get("/legal/guidelines", (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(communityGuidelines);
+});
+
+// Monetization routes (protected)
+if (moderationSystem) {
+  app.use('/api/moderation', moderationSystem.getRoutes());
+}
+
+// Simple monetization endpoints
+app.get('/api/premium/features', (req, res) => {
+  res.json({
+    success: true,
+    features: SimpleMonetization.premiumFeatures
+  });
+});
+
+app.post('/api/premium/purchase', authenticateToken, (req, res) => {
+  const { feature } = req.body;
+  const userId = req.user.id;
+  
+  const paymentLink = SimpleMonetization.generatePaymentLink(feature, userId);
+  if (!paymentLink) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid feature'
+    });
+  }
+  
+  res.json({
+    success: true,
+    paymentLink
+  });
+});
+
+// Moderation dashboard (admin only)
+app.get('/admin/moderation', authenticateAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'moderation-dashboard.html'));
+});
+
+// Security report endpoint
+app.get('/admin/security-report', async (req, res) => {
+  try {
+    const report = DeploymentSecurity.generateSecurityReport(pool);
+    res.json({ success: true, report });
+  } catch (error) {
+    logger.error('Error generating security report', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate security report' });
+  }
 });
 
 /************************/
@@ -477,29 +983,134 @@ io.on("connection", (socket) => {
         if (!userInfo) return;
         
         const { room } = userInfo;
+        const clientIP = socket.handshake.address;
 
         const sanitized = socket.sanitize(data);
-        const sanitizedMessage = sanitized.message;
+        const originalMessage = sanitized.message;
         const sanitizedUsername = sanitized.username;
 
-        try {
-            await pool.query(
-                "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)",
-                [room, sanitizedUsername, sanitizedMessage]
-            );
-        } catch (err) {
-            logger.error("Error saving message to database:", {
-                error: err.message,
-                stack: err.stack,
-                room: room,
-                username: sanitizedUsername
+        // First validate message with our security system
+        const messageValidation = await validateMessage(originalMessage, clientIP);
+        if (!messageValidation.valid) {
+            socket.emit("messageBlocked", { 
+                reason: messageValidation.error,
+                originalMessage: originalMessage 
             });
+            logger.warn("Message validation failed", { 
+                username: sanitizedUsername, 
+                message: originalMessage, 
+                reason: messageValidation.error,
+                ip: clientIP,
+                room 
+            });
+            return;
         }
-        io.to(room).emit("chatMessage", {
-            ...data,
-            message: sanitizedMessage,
-            username: sanitizedUsername
-        });
+
+        // Enhanced message validation and moderation
+        if (moderationSystem) {
+            // Get user ID if available
+            let userId = null;
+            try {
+                const userResult = await pool.query("SELECT id FROM users WHERE username = $1", [sanitizedUsername]);
+                if (userResult.rows.length > 0) {
+                    userId = userResult.rows[0].id;
+                    
+                    // Check if user is banned
+                    if (await moderationSystem.isUserBanned(userId)) {
+                        socket.emit("error", { message: "Your account has been suspended." });
+                        return;
+                    }
+                }
+            } catch (err) {
+                logger.error("Error checking user status:", err);
+            }
+
+            // Auto-moderate the message
+            const reqContext = { 
+                ip: socket.handshake.address || '0.0.0.0', 
+                userAgent: 'Socket.IO Client' 
+            };
+            const moderationResult = await moderationSystem.autoModerateMessage(
+                messageValidation.cleaned, 
+                userId, 
+                room, 
+                reqContext
+            );
+            
+            if (!moderationResult.allowed) {
+                socket.emit("messageBlocked", { 
+                    reason: moderationResult.reason,
+                    originalMessage: originalMessage 
+                });
+                logger.warn("Message blocked", { 
+                    username: sanitizedUsername, 
+                    message: originalMessage, 
+                    reason: moderationResult.reason,
+                    room 
+                });
+                return;
+            }
+            
+            // Use the cleaned message
+            const cleanedMessage = moderationResult.cleanedMessage;
+            
+            try {
+                await pool.query(
+                    "INSERT INTO messages (room, username, message, timestamp) VALUES ($1, $2, $3, NOW())",
+                    [room, sanitizedUsername, cleanedMessage]
+                );
+                
+                // Log message for moderation purposes
+                if (userId) {
+                    await moderationSystem.logUserAction(userId, 'message_sent', {
+                        room,
+                        message: cleanedMessage,
+                        originalMessage: originalMessage !== cleanedMessage ? originalMessage : null
+                    }, { 
+                        ip: socket.handshake.address,
+                        userAgent: socket.handshake.headers['user-agent'] || 'Socket.IO Client' 
+                    });
+                }
+            } catch (err) {
+                logger.error("Error saving message to database:", {
+                    error: err.message,
+                    stack: err.stack,
+                    room: room,
+                    username: sanitizedUsername
+                });
+            }
+
+            // Emit the cleaned message
+            io.to(room).emit("chatMessage", {
+                username: sanitizedUsername,
+                message: cleanedMessage,
+                room,
+                timestamp: new Date().toISOString()
+            });
+            console.log(`Emitting message to room ${room}: ${sanitizedUsername}: ${cleanedMessage}`);
+        } else {
+            // Fallback to original behavior if moderation system not available
+            try {
+                await pool.query(
+                    "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)",
+                    [room, sanitizedUsername, originalMessage]
+                );
+            } catch (err) {
+                logger.error("Error saving message to database:", {
+                    error: err.message,
+                    stack: err.stack,
+                    room: room,
+                    username: sanitizedUsername
+                });
+            }
+            
+            io.to(room).emit("chatMessage", {
+                username: sanitizedUsername,
+                message: originalMessage,
+                room
+            });
+            console.log(`Emitting fallback message to room ${room}: ${sanitizedUsername}: ${originalMessage}`);
+        }
     });
 
     
@@ -590,6 +1201,8 @@ app.get("/messages/:room", async (req, res) => {
         [room]
       );
 
+      console.log(`Retrieved ${result.rows.length} messages for room ${room}`);
+      
       // Simply return the query results - no need to re-sanitize data from the database
       res.json({ success: true, messages: result.rows });
     } catch (err) {
@@ -618,71 +1231,3 @@ app.use((err, req, res, next) => {
     method: req.method,
     ip: req.ip
   });
-
-  // Send a response to the client
-  res.status(500).json({
-    success: false,
-    message: 'An unexpected error occurred'
-  });
-});
-
-// Only start the server if this file is run directly
-if (require.main === module) {
-  // Set up graceful shutdown
-  const gracefulShutdown = (signal) => {
-    logger.info(`Received ${signal}. Shutting down gracefully...`);
-    server.close(() => {
-      logger.info('HTTP server closed.');
-      // Close database connection
-      pool.end(() => {
-        logger.info('Database connection closed.');
-        process.exit(0);
-      });
-    });
-    
-    // Force close after 10s if not closed gracefully
-    setTimeout(() => {
-      logger.error('Could not close connections in time, forcefully shutting down');
-      process.exit(1);
-    }, 10000);
-  };
-  
-  // Listen for termination signals
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (err) => {
-    logger.error('Uncaught exception', {
-      error: err.message,
-      stack: err.stack
-    });
-    gracefulShutdown('uncaughtException');
-  });
-  
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', {
-      promise: promise,
-      reason: reason
-    });
-  });
-  
-  // Start the server
-  server.listen(port, async () => {
-    logger.info(`Server is running at http://localhost:${port}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const { default: open } = await import("open");
-        open(`http://localhost:${port}`);
-      } catch (err) {
-        logger.info("Browser open failed, but server is running");
-      }
-    }
-  });
-}
-
-// Export the app for testing
-module.exports = app;

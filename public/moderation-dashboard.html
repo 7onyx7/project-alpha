@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderation Dashboard - Bantrhaus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab:hover {
+            background: #f0f0f0;
+        }
+
+        .tab.active:hover {
+            background: #5a67d8;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .report-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .report-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .report-severity {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .severity-high { background: #fee; color: #d63384; }
+        .severity-medium { background: #fff3cd; color: #856404; }
+        .severity-low { background: #d1ecf1; color: #0c5460; }
+
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-approve { background: #28a745; color: white; }
+        .btn-reject { background: #dc3545; color: white; }
+        .btn-ban { background: #6c757d; color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state img {
+            max-width: 200px;
+            opacity: 0.5;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .monetization-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .monetization-info h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .monetization-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .monetization-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .monetization-card h4 {
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .monetization-card p {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .price-tag {
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .report-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .report-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* End of modal styles */
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🛡️ Moderation Dashboard</h1>
+                    <p>Keep Bantrhaus safe and profitable</p>
+                </div>
+                <div>
+                    <button id="changePasswordBtn" style="background: #4a5568; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; margin-right: 10px;">
+                        🔑 Change Password
+                    </button>
+                    <button id="backToChatBtn" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em;">
+                        ← Back to Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="monetization-info">
+            <h3>💰 Monetization Strategy</h3>
+            <div class="monetization-grid">
+                <div class="monetization-card">
+                    <h4>Premium Subscriptions</h4>
+                    <p>Ad-free experience, custom themes, priority support, exclusive features</p>
+                    <span class="price-tag">$4.99/month</span>
+                </div>
+                <div class="monetization-card">
+                    <h4>Profile Customization</h4>
+                    <p>Custom art, animations, themes, emoji packs, fonts</p>
+                    <span class="price-tag">$0.99 - $2.99</span>
+                </div>
+                <div class="monetization-card">
+                    <h4>Chat Enhancements</h4>
+                    <p>Message reactions, effects, priority chat, custom rooms</p>
+                    <span class="price-tag">$1.99 - $4.99</span>
+                </div>
+                <div class="monetization-card">
+                    <h4>Business Features</h4>
+                    <p>Branded rooms, analytics, moderation tools, team accounts</p>
+                    <span class="price-tag">$19.99/month</span>
+                </div>
+                <div class="monetization-card">
+                    <h4>Ad Revenue Sharing</h4>
+                    <p>Users earn 70% of ad revenue from their content and engagement</p>
+                    <span class="price-tag">Revenue Share</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalReports">0</h3>
+                <p>Total Reports</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="pendingReports">0</h3>
+                <p>Pending Reports</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="bannedUsers">0</h3>
+                <p>Banned Users</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeUsers">0</h3>
+                <p>Active Users</p>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('reports')">📋 Reports</button>
+            <button class="tab" onclick="switchTab('banned')">🚫 Banned Users</button>
+            <button class="tab" onclick="switchTab('audit')">📊 Audit Log</button>
+            <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
+        </div>
+
+        <div id="reports" class="tab-content active">
+            <input type="text" id="reportSearch" class="search-bar" placeholder="Search reports...">
+            <div id="reportsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading reports...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="banned" class="tab-content">
+            <div id="bannedList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading banned users...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="audit" class="tab-content">
+            <div id="auditList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading audit log...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings" class="tab-content">
+            <h3>Moderation Settings</h3>
+            <div style="margin-top: 20px;">
+                <h4>Auto-Moderation</h4>
+                <label><input type="checkbox" id="autoModerationEnabled" checked> Enable auto-moderation</label><br>
+                <label><input type="checkbox" id="profanityFilterEnabled" checked> Enable profanity filter</label><br>
+                <label><input type="checkbox" id="spamDetectionEnabled" checked> Enable spam detection</label><br>
+                
+                <h4 style="margin-top: 20px;">Rate Limiting</h4>
+                <label>Messages per minute: <input type="number" id="messageRateLimit" value="10" style="width: 60px;"></label><br>
+                <label>Login attempts per hour: <input type="number" id="loginRateLimit" value="5" style="width: 60px;"></label><br>
+                
+                <h4 style="margin-top: 20px;">Monetization</h4>
+                <label><input type="checkbox" id="premiumFeaturesEnabled" checked> Enable premium features</label><br>
+                <label><input type="checkbox" id="businessAccountsEnabled" checked> Enable business accounts</label><br>
+                
+                <button class="btn btn-approve" onclick="saveSettings()" style="margin-top: 20px;">Save Settings</button>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="passwordModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+            <div class="modal-content" style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 8px; width: 400px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+                <span class="close" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+                <h2 style="margin-bottom: 20px; color: #333;">Change Admin Password</h2>
+                <form id="changePasswordForm">
+                    <div style="margin-bottom: 15px;">
+                        <label for="currentPassword" style="display: block; margin-bottom: 5px; font-weight: 500; color: #444;">Current Password</label>
+                        <input type="password" id="currentPassword" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="newPassword" style="display: block; margin-bottom: 5px; font-weight: 500; color: #444;">New Password</label>
+                        <input type="password" id="newPassword" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label for="confirmPassword" style="display: block; margin-bottom: 5px; font-weight: 500; color: #444;">Confirm New Password</label>
+                        <input type="password" id="confirmPassword" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div id="passwordError" style="color: #e53e3e; margin-bottom: 15px; font-size: 14px; display: none;"></div>
+                    <div style="text-align: right;">
+                        <button type="button" id="cancelPasswordBtn" style="background: #718096; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px;">Cancel</button>
+                        <button type="submit" style="background: #4299e1; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- End of Change Password Modal -->
+    </div>
+
+    <script>
+        let currentTab = 'reports';
+        let reports = [];
+        let bannedUsers = [];
+        let auditLogs = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadReports();
+            loadBannedUsers();
+            loadAuditLogs();
+            
+            // Back to chat button handler
+            const backToChatBtn = document.getElementById('backToChatBtn');
+            if (backToChatBtn) {
+                backToChatBtn.addEventListener('click', function() {
+                    window.location.href = '/chat.html';
+                });
+            }
+
+            // Change password button handler
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+            const passwordModal = document.getElementById('passwordModal');
+            const closeModal = passwordModal.querySelector('.close');
+            const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+
+            changePasswordBtn.addEventListener('click', function() {
+                passwordModal.style.display = 'block';
+            });
+
+            closeModal.addEventListener('click', function() {
+                passwordModal.style.display = 'none';
+            });
+
+            cancelPasswordBtn.addEventListener('click', function() {
+                passwordModal.style.display = 'none';
+            });
+        });
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/moderation/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalReports').textContent = data.stats.totalReports;
+                    document.getElementById('pendingReports').textContent = data.stats.pendingReports;
+                    document.getElementById('bannedUsers').textContent = data.stats.bannedUsers;
+                    document.getElementById('activeUsers').textContent = data.stats.activeUsers;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/moderation/reports');
+                const data = await response.json();
+                
+                if (data.success) {
+                    reports = data.reports;
+                    displayReports(reports);
+                } else {
+                    displayEmptyState('reportsList', 'No reports found');
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                displayEmptyState('reportsList', 'Error loading reports');
+            }
+        }
+
+        function displayReports(reportsToShow) {
+            const container = document.getElementById('reportsList');
+            
+            if (reportsToShow.length === 0) {
+                displayEmptyState('reportsList', 'No reports found');
+                return;
+            }
+
+            container.innerHTML = reportsToShow.map(report => `
+                <div class="report-item">
+                    <div class="report-header">
+                        <div>
+                            <strong>${escapeHtml(report.reported_username || 'Anonymous')}</strong>
+                            <span class="report-severity severity-${getSeverity(report.reason)}">${escapeHtml(report.reason)}</span>
+                        </div>
+                        <small>${new Date(report.created_at).toLocaleString()}</small>
+                    </div>
+                    <p><strong>Content:</strong> ${escapeHtml(report.content || 'No content provided')}</p>
+                    <p><strong>Room:</strong> ${report.room || 'Unknown'}</p>
+                    <div class="report-actions">
+                        <button class="btn btn-approve" onclick="handleReport(${report.id}, 'approved')">✅ Approve</button>
+                        <button class="btn btn-reject" onclick="handleReport(${report.id}, 'rejected')">❌ Reject</button>
+                        <button class="btn btn-ban" onclick="handleReport(${report.id}, 'approved', true)">🚫 Ban User</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getSeverity(reason) {
+            const highSeverity = ['harassment', 'threats', 'hate speech', 'illegal content'];
+            const mediumSeverity = ['spam', 'inappropriate content', 'abuse'];
+            
+            if (highSeverity.some(s => reason.toLowerCase().includes(s))) return 'high';
+            if (mediumSeverity.some(s => reason.toLowerCase().includes(s))) return 'medium';
+            return 'low';
+        }
+
+        async function handleReport(reportId, action, banUser = false) {
+            const notes = prompt('Enter moderator notes (optional):');
+            
+            try {
+                const response = await fetch(`/api/moderation/reports/${reportId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action,
+                        moderatorNotes: notes || '',
+                        banUser,
+                        banDuration: banUser ? 24 : null // 24 hours
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadReports();
+                    loadStats();
+                    alert('Report handled successfully!');
+                } else {
+                    alert('Error handling report: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error handling report:', error);
+                alert('Error handling report');
+            }
+        }
+
+        async function loadBannedUsers() {
+            try {
+                const response = await fetch('/api/moderation/banned-users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    bannedUsers = data.bannedUsers;
+                    displayBannedUsers(bannedUsers);
+                } else {
+                    displayEmptyState('bannedList', 'No banned users found');
+                }
+            } catch (error) {
+                console.error('Error loading banned users:', error);
+                displayEmptyState('bannedList', 'Error loading banned users');
+            }
+        }
+
+        function displayBannedUsers(users) {
+            const container = document.getElementById('bannedList');
+            
+            if (users.length === 0) {
+                displayEmptyState('bannedList', 'No banned users found');
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div class="report-item">
+                    <div class="report-header">
+                        <strong>${user.username}</strong>
+                        <small>Banned: ${new Date(user.banned_at).toLocaleString()}</small>
+                    </div>
+                    <p><strong>Reason:</strong> ${user.reason || 'No reason provided'}</p>
+                    <p><strong>Expires:</strong> ${user.expires_at ? new Date(user.expires_at).toLocaleString() : 'Permanent'}</p>
+                    <div class="report-actions">
+                        <button class="btn btn-approve" onclick="unbanUser(${user.id})">🔓 Unban</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function unbanUser(banId) {
+            if (!confirm('Are you sure you want to unban this user?')) return;
+            
+            try {
+                const response = await fetch(`/api/moderation/banned-users/${banId}/unban`, {
+                    method: 'PUT'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadBannedUsers();
+                    loadStats();
+                    alert('User unbanned successfully!');
+                } else {
+                    alert('Error unbanning user: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error unbanning user:', error);
+                alert('Error unbanning user');
+            }
+        }
+
+        async function loadAuditLogs() {
+            try {
+                const response = await fetch('/api/moderation/audit-log');
+                const data = await response.json();
+                
+                if (data.success) {
+                    auditLogs = data.logs;
+                    displayAuditLogs(auditLogs);
+                } else {
+                    displayEmptyState('auditList', 'No audit logs found');
+                }
+            } catch (error) {
+                console.error('Error loading audit logs:', error);
+                displayEmptyState('auditList', 'Error loading audit logs');
+            }
+        }
+
+        function displayAuditLogs(logs) {
+            const container = document.getElementById('auditList');
+            
+            if (logs.length === 0) {
+                displayEmptyState('auditList', 'No audit logs found');
+                return;
+            }
+
+            container.innerHTML = logs.map(log => `
+                <div class="report-item">
+                    <div class="report-header">
+                        <strong>${log.username || 'System'}</strong>
+                        <small>${new Date(log.created_at).toLocaleString()}</small>
+                    </div>
+                    <p><strong>Action:</strong> ${log.action}</p>
+                    <p><strong>Details:</strong> ${JSON.stringify(log.details, null, 2)}</p>
+                    <p><strong>IP:</strong> ${log.ip_address || 'N/A'}</p>
+                </div>
+            `).join('');
+        }
+
+        function displayEmptyState(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>${message}</h3>
+                    <p>Everything looks good! 🎉</p>
+                </div>
+            `;
+        }
+
+        function saveSettings() {
+            const settings = {
+                autoModerationEnabled: document.getElementById('autoModerationEnabled').checked,
+                profanityFilterEnabled: document.getElementById('profanityFilterEnabled').checked,
+                spamDetectionEnabled: document.getElementById('spamDetectionEnabled').checked,
+                messageRateLimit: document.getElementById('messageRateLimit').value,
+                loginRateLimit: document.getElementById('loginRateLimit').value,
+                premiumFeaturesEnabled: document.getElementById('premiumFeaturesEnabled').checked,
+                businessAccountsEnabled: document.getElementById('businessAccountsEnabled').checked
+            };
+
+            // Save to localStorage for now (in production, this would be saved to the server)
+            localStorage.setItem('moderationSettings', JSON.stringify(settings));
+            alert('Settings saved successfully!');
+        }
+
+        // Search functionality
+        document.getElementById('reportSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredReports = reports.filter(report => 
+                report.reported_username?.toLowerCase().includes(searchTerm) ||
+                report.content?.toLowerCase().includes(searchTerm) ||
+                report.reason?.toLowerCase().includes(searchTerm)
+            );
+            displayReports(filteredReports);
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            if (currentTab === 'reports') {
+                loadReports();
+            }
+            loadStats();
+        }, 30000);
+
+        // Change password form submission
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const passwordError = document.getElementById('passwordError');
+
+            passwordError.style.display = 'none';
+
+            // Validate password
+            if (newPassword !== confirmPassword) {
+                passwordError.textContent = 'New passwords do not match';
+                passwordError.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/moderation/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Password changed successfully!');
+                    passwordModal.style.display = 'none';
+                } else {
+                    passwordError.textContent = data.error;
+                    passwordError.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                passwordError.textContent = 'Error changing password';
+                passwordError.style.display = 'block';
+            }
+        });
+
+        // XSS Protection function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -54,6 +54,7 @@ body {
   padding: 10px;
   border-radius: 5px;
   max-width: 80%;
+  position: relative;
 }
 
 .chat-messages .message.sent {
@@ -74,6 +75,44 @@ body {
   align-self: center;
   font-style: italic;
   border: 1px solid #f5c17e;
+  text-align: center;
+  width: 80%;
+  padding: 8px 12px;
+  font-size: 0.9em;
+  margin: 8px 0;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.message-header .username {
+  font-weight: bold;
+  color: #666;
+}
+
+.message-header .report-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.7;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.message-header .report-btn:hover {
+  opacity: 1;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.message-content {
+  line-height: 1.4;
 }
 
 /* User List Section */

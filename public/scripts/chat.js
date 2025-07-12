@@ -1,5 +1,6 @@
 let socket;
 let escPressedOnce = false;
+let isAdmin = false; // Track admin status
 
 document.addEventListener("DOMContentLoaded", () => {
   // Initialize socket connection
@@ -21,6 +22,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const messageInput = document.getElementById("messageInput");
   const sendButton = document.getElementById("sendButton");
   const userList = document.getElementById("users");
+  const adminPanelButton = document.getElementById("adminPanelButton");
+
+  // Check admin status when page loads
+  checkAdminStatus();
+
+  // Admin panel button click handler
+  if (adminPanelButton) {
+    adminPanelButton.addEventListener('click', () => {
+      window.open('/admin/moderation', '_blank');
+    });
+  }
 
   function generateRandomUsername() {
     const adjectives = [
@@ -93,8 +105,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       
 
-  // Clear the user list
-  userList.innerHTML = ""; 
+  // Clear the user list securely
+  userList.innerHTML = ""; // This is safe here as we're clearing 
 
   // Add user to list
   const addUserToList = (user) => {
@@ -104,10 +116,50 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Send messages to chat!
-  const addMessage = (message, type = "sent") => {
+  const addMessage = (message, type = "sent", username = null, timestamp = null) => {
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${type}`;
-    msgDiv.textContent = message;
+    
+    console.log("Adding message:", { message, type, username, timestamp }); // Debug log
+    
+    if (type === "received" && username) {
+      // Create message with report button
+      const messageContent = document.createElement("div");
+      messageContent.className = "message-content";
+      messageContent.textContent = message; // Just use the message directly
+      
+      const messageHeader = document.createElement("div");
+      messageHeader.className = "message-header";
+      
+      // Create username span securely
+      const usernameSpan = document.createElement("span");
+      usernameSpan.className = "username";
+      usernameSpan.textContent = username; // Safe text content
+      
+      // Create report button securely
+      const reportBtn = document.createElement("button");
+      reportBtn.className = "report-btn";
+      reportBtn.textContent = "⚠️";
+      reportBtn.onclick = () => reportUser(username, message);
+      
+      messageHeader.appendChild(usernameSpan);
+      messageHeader.appendChild(reportBtn);
+      
+      msgDiv.appendChild(messageHeader);
+      msgDiv.appendChild(messageContent);
+    } else if (type === "system") {
+      // System messages
+      msgDiv.textContent = message;
+      msgDiv.classList.add("system-message");
+    } else {
+      // Sent messages
+      msgDiv.textContent = `${currentUser}: ${message}`;
+    }
+    
+    if (timestamp) {
+      msgDiv.title = new Date(timestamp).toLocaleString();
+    }
+    
     messageBox.appendChild(msgDiv);
     messageBox.scrollTop = messageBox.scrollHeight;
   };
@@ -119,7 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       if (data.success && Array.isArray(data.messages)) {
         data.messages.forEach(msg => {
-          addMessage(`${msg.username}: ${msg.message}`, "received");
+          console.log("History message:", msg); // Debug log
+          // Pass username separately to properly format the message
+          addMessage(msg.message, "received", msg.username, msg.timestamp);
         });
       }
     } catch (err) {
@@ -185,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
   socket.on("updateUserList", (users) => {
         
     const userList = document.getElementById("users");
-    userList.innerHTML = "";  // Clear current list
+    userList.innerHTML = "";  // Safe clearing operation
   
     users.forEach((user) => {
       const li = document.createElement("li");
@@ -201,7 +255,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on("chatMessage", (data) => {
     if (data.username === currentUser) return;
-    addMessage(`${data.username}: ${data.message}`, "received");
+    console.log("Received message:", data); // Debug log
+    console.log("Current user:", currentUser); // Debug log
+    addMessage(data.message, "received", data.username, data.timestamp);
+  });
+
+  // Handle message blocking
+  socket.on("messageBlocked", (data) => {
+    alert(`Message blocked: ${data.reason}`);
+    addMessage(`⚠️ Your message was blocked: ${data.reason}`, "system");
+  });
+
+  // Handle errors
+  socket.on("error", (data) => {
+    alert(`Error: ${data.message}`);
+    addMessage(`❌ Error: ${data.message}`, "system");
   });
 
   socket.on("chatEnded", (data) => {
@@ -235,7 +303,8 @@ socket.on("selfDisconnect", () => {
   sendButton.addEventListener("click", () => {
     const message = messageInput.value.trim();
     if (message && currentUser) {
-      addMessage(`${currentUser}: ${message}`, "sent");
+      // Just pass the message without username prefix - the addMessage function will add it
+      addMessage(message, "sent");
       socket.emit("chatMessage", { username: currentUser, message, room });
       messageInput.value = ""; // Clear input
     }
@@ -305,6 +374,17 @@ window.addEventListener('beforeunload', (event) => {
   clearAnonSessionOnExit();
 });
 
+// Report user function
+function reportUser(username, message) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get("room");
+  const reportUrl = `/report.html?username=${encodeURIComponent(username)}&room=${encodeURIComponent(roomParam)}`;
+  window.open(reportUrl, 'reportWindow', 'width=600,height=700,scrollbars=yes');
+}
+
+// Global report function for external access
+window.reportUser = reportUser;
+
 // Reset the flag when just switching tabs
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
@@ -331,5 +411,32 @@ function clearAnonSessionOnExit() {
   if (localStorage.getItem("isLoggedIn") !== "true") {
     localStorage.removeItem("username");
     localStorage.removeItem("isLoggedIn");
+  }
+}
+
+// Check admin status function
+async function checkAdminStatus() {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch('/api/admin-status', {
+      headers,
+      credentials: 'include' // Include cookies
+    });
+    const data = await response.json();
+    isAdmin = data.isAdmin;
+    
+    // Show/hide admin panel button
+    const adminButton = document.getElementById('adminPanelButton');
+    if (adminButton) {
+      adminButton.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error);
   }
 }

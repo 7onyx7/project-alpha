@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem("username", result.username); // save username
           localStorage.setItem("token", result.token); // save token
           localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("userId", result.userId); // save user ID
+          localStorage.setItem("role", result.role || 'user'); // save role
 
           window.location.href = "/chat.html"; // redirect to chat page
         } else {
@@ -168,6 +170,88 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Error:", err);
         registerError.textContent = "An error occurred. Please try again.";
         registerError.style.display = "block";
+      }
+    });
+  }
+
+  /********************************************************/
+  /*             FORGOT PASSWORD FUNCTIONALITY            */
+  /********************************************************/
+  const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+  const forgotPasswordModal = document.getElementById("forgotPasswordModal");
+  const closeForgotModal = document.getElementById("closeForgotModal");
+  const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+  const forgotPasswordMessage = document.getElementById("forgotPasswordMessage");
+
+  // Initialize the forgot password modal as hidden
+  if (forgotPasswordModal) {
+    forgotPasswordModal.style.display = "none";
+  }
+
+  // Show the forgot password modal when the link is clicked
+  if (forgotPasswordLink && forgotPasswordModal) {
+    forgotPasswordLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      forgotPasswordModal.style.display = "block";
+    });
+  }
+
+  // Close the forgot password modal when the close button is clicked
+  if (closeForgotModal && forgotPasswordModal) {
+    closeForgotModal.addEventListener("click", () => {
+      forgotPasswordModal.style.display = "none";
+    });
+  }
+
+  // Close the modal when clicking outside the modal content
+  window.addEventListener("click", (event) => {
+    if (event.target === forgotPasswordModal) {
+      forgotPasswordModal.style.display = "none";
+    }
+  });
+
+  // Handle forgot password form submission
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      
+      const email = document.getElementById("resetEmail").value.trim();
+      forgotPasswordMessage.textContent = "";
+      forgotPasswordMessage.className = "";
+      
+      try {
+        // Add CSRF token to form
+        await csrfUtils.addTokenToForm(forgotPasswordForm);
+        
+        // Get CSRF token and add to fetch options
+        const fetchOptions = await csrfUtils.addTokenToFetchOptions({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        const response = await fetch("/api/auth/forgot-password", fetchOptions);
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          forgotPasswordMessage.textContent = "Password reset link has been sent to your email.";
+          forgotPasswordMessage.className = "success";
+          
+          // Clear the form
+          document.getElementById("resetEmail").value = "";
+          
+          // Close the modal after 3 seconds
+          setTimeout(() => {
+            forgotPasswordModal.style.display = "none";
+          }, 3000);
+        } else {
+          forgotPasswordMessage.textContent = result.message || "Failed to send reset link. Please try again.";
+          forgotPasswordMessage.className = "error";
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        forgotPasswordMessage.textContent = "An error occurred. Please try again.";
+        forgotPasswordMessage.className = "error";
       }
     });
   }

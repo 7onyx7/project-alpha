@@ -1,4 +1,4 @@
-# CDN Setup Guide for Project Alpha
+# CDN Setup Guide for Bantrhaus
 
 ## Cloudflare CDN Setup Instructions
 
@@ -7,7 +7,7 @@
 
 ### 2. Add Your Domain
 - After logging in, click "Add Site"
-- Enter your domain name (e.g., `projectalpha.com`)
+- Enter your domain name (e.g., `bantrhaus.com`)
 - Select the Free plan
 - Follow the instructions to update your nameservers at your domain registrar
 
@@ -22,7 +22,7 @@
 
 #### Create a Page Rule for Static Assets:
 1. Go to "Rules" > "Page Rules"
-2. Create a new Page Rule with the URL pattern: `*projectalpha.com/public/*`
+2. Create a new Page Rule with the URL pattern: `*bantrhaus.com/public/*`
 3. Add the following settings:
    - Cache Level: Cache Everything
    - Edge Cache TTL: 2 hours
@@ -49,10 +49,10 @@ If you don't have a custom domain, you can use jsDelivr with your GitHub reposit
 
 ```html
 <!-- For CSS files -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/username/project-alpha@main/public/styles/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/username/bantrhaus@main/public/styles/styles.css" />
 
 <!-- For JavaScript files -->
-<script src="https://cdn.jsdelivr.net/gh/username/project-alpha@main/public/scripts/scripts.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/username/bantrhaus@main/public/scripts/scripts.js"></script>
 ```
 
 Replace `username` with your GitHub username and `main` with your branch name.

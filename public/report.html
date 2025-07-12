@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report User - Bantrhaus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(120deg, #4a90e2, #9013fe);
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .report-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .report-header h1 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .reason-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .reason-option {
+            display: flex;
+            align-items: center;
+        }
+        .reason-option input {
+            margin-right: 8px;
+            width: auto;
+        }
+        .btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #c82333;
+        }
+        .btn-cancel {
+            background-color: #6c757d;
+            margin-top: 10px;
+        }
+        .btn-cancel:hover {
+            background-color: #545b62;
+        }
+        .warning-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .success-message {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #155724;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #721c24;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <h1>🚨 Report User</h1>
+            <p>Help us keep Bantrhaus safe for everyone</p>
+        </div>
+
+        <div class="warning-notice">
+            <strong>Important:</strong> False reports may result in penalties to your account. 
+            Only submit reports for genuine policy violations.
+        </div>
+
+        <div id="successMessage" class="success-message hidden">
+            <strong>Thank you!</strong> Your report has been submitted and will be reviewed by our moderation team.
+        </div>
+
+        <div id="errorMessage" class="error-message hidden">
+            <strong>Error:</strong> <span id="errorText"></span>
+        </div>
+
+        <form id="reportForm">
+            <div class="form-group">
+                <label for="reportedUsername">Username to Report:</label>
+                <input type="text" id="reportedUsername" name="reportedUsername" required 
+                       placeholder="Enter the username you want to report">
+            </div>
+
+            <div class="form-group">
+                <label for="reportReason">Reason for Report:</label>
+                <div class="reason-options">
+                    <div class="reason-option">
+                        <input type="radio" id="harassment" name="reportReason" value="harassment" required>
+                        <label for="harassment">Harassment</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="spam" name="reportReason" value="spam" required>
+                        <label for="spam">Spam</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="inappropriate" name="reportReason" value="inappropriate" required>
+                        <label for="inappropriate">Inappropriate Content</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="threats" name="reportReason" value="threats" required>
+                        <label for="threats">Threats/Violence</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="impersonation" name="reportReason" value="impersonation" required>
+                        <label for="impersonation">Impersonation</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="underage" name="reportReason" value="underage" required>
+                        <label for="underage">Underage User</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="scam" name="reportReason" value="scam" required>
+                        <label for="scam">Scam/Fraud</label>
+                    </div>
+                    <div class="reason-option">
+                        <input type="radio" id="other" name="reportReason" value="other" required>
+                        <label for="other">Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="reportDetails">Additional Details:</label>
+                <textarea id="reportDetails" name="reportDetails" required 
+                          placeholder="Please provide specific details about the violation. Include what happened, when it occurred, and any relevant context."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="messageContent">Problematic Message (if applicable):</label>
+                <textarea id="messageContent" name="messageContent" 
+                          placeholder="Copy and paste the exact message that violates our guidelines (optional)"></textarea>
+            </div>
+
+            <button type="submit" class="btn">Submit Report</button>
+            <button type="button" class="btn btn-cancel" onclick="window.close()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('reportForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const reportData = {
+                reportedUsername: formData.get('reportedUsername'),
+                reason: formData.get('reportReason'),
+                details: formData.get('reportDetails'),
+                messageContent: formData.get('messageContent'),
+                room: new URLSearchParams(window.location.search).get('room') || 'unknown'
+            };
+            
+            const successDiv = document.getElementById('successMessage');
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            // Hide previous messages
+            successDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(reportData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    successDiv.classList.remove('hidden');
+                    document.getElementById('reportForm').reset();
+                    
+                    // Auto-close after 3 seconds
+                    setTimeout(() => {
+                        if (window.opener) {
+                            window.close();
+                        } else {
+                            window.location.href = '/chat.html';
+                        }
+                    }, 3000);
+                } else {
+                    errorText.textContent = result.message || 'Failed to submit report. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                errorText.textContent = 'Network error. Please check your connection and try again.';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+        
+        // Auto-fill username from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        if (username) {
+            document.getElementById('reportedUsername').value = decodeURIComponent(username);
+        }
+    </script>
+</body>
+</html>

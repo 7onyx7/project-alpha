@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Room - Project Alpha</title>
+    <title>Chat Room - Bantrhaus</title>
     <!-- Regular CSS (fallback) -->
     <link rel="stylesheet" href="styles/chat.css" />
     <!-- Minified CSS (will be used when available) -->
@@ -42,6 +42,10 @@
       </footer>
     </div>
     <button id="logoutButton">Logout</button>
+    <!-- Admin Panel Button (only visible to admins) -->
+    <button id="adminPanelButton" style="display: none; background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-left: 10px; cursor: pointer;">
+      Admin Panel
+    </button>
     <script src="/socket.io/socket.io.js"></script>
     <!-- Regular JavaScript (fallback) -->
     <script src="scripts/scripts.js"></script>

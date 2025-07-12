@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age Verification - Bantrhaus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(120deg, #4a90e2, #9013fe);
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .verification-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .warning-icon {
+            font-size: 48px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .age-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .age-form {
+            margin: 30px 0;
+        }
+        .date-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .date-inputs select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 10px;
+            margin-top: 4px;
+        }
+        .checkbox-container label {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .checkbox-container a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .checkbox-container a:hover {
+            text-decoration: underline;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .error-message {
+            color: #dc3545;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .legal-links {
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        .legal-links a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .legal-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="warning-icon">⚠️</div>
+        <h1>Age Verification Required</h1>
+        
+        <div class="age-warning">
+            <strong>Important:</strong> This platform is for adults only. You must be 18 or older to continue.
+            <br><br>
+            By continuing, you confirm that:
+            <ul>
+                <li>You are at least 18 years old</li>
+                <li>You agree to our Terms of Service</li>
+                <li>You understand this is an adult chat platform</li>
+                <li>You will behave respectfully towards other users</li>
+            </ul>
+        </div>
+
+        <form id="ageVerificationForm" class="age-form">
+            <h3>Please confirm your date of birth:</h3>
+            <div class="date-inputs">
+                <select id="birthMonth" required>
+                    <option value="">Month</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <select id="birthDay" required>
+                    <option value="">Day</option>
+                    <!-- Days will be populated by JavaScript -->
+                </select>
+                <select id="birthYear" required>
+                    <option value="">Year</option>
+                    <!-- Years will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="ageConfirmation" required>
+                <label for="ageConfirmation">
+                    I confirm that I am 18 years of age or older and agree to the 
+                    <a href="/legal/terms" target="_blank">Terms of Service</a> and 
+                    <a href="/legal/privacy" target="_blank">Privacy Policy</a>.
+                </label>
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="guidelinesConfirmation" required>
+                <label for="guidelinesConfirmation">
+                    I have read and agree to follow the 
+                    <a href="/legal/guidelines" target="_blank">Community Guidelines</a>.
+                </label>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <button type="submit" class="btn">Continue to Bantrhaus</button>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='https://www.google.com'">
+                I am under 18
+            </button>
+        </form>
+
+        <div class="legal-links">
+            <a href="/legal/terms" target="_blank">Terms of Service</a>
+            <a href="/legal/privacy" target="_blank">Privacy Policy</a>
+            <a href="/legal/guidelines" target="_blank">Community Guidelines</a>
+        </div>
+    </div>
+
+    <script>
+        // Populate days
+        const daySelect = document.getElementById('birthDay');
+        for (let i = 1; i <= 31; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            daySelect.appendChild(option);
+        }
+
+        // Populate years (from 1920 to current year - 18)
+        const yearSelect = document.getElementById('birthYear');
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear - 18; i >= 1920; i--) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            yearSelect.appendChild(option);
+        }
+
+        // Handle form submission
+        document.getElementById('ageVerificationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const month = document.getElementById('birthMonth').value;
+            const day = document.getElementById('birthDay').value;
+            const year = document.getElementById('birthYear').value;
+            const ageConfirmed = document.getElementById('ageConfirmation').checked;
+            const guidelinesConfirmed = document.getElementById('guidelinesConfirmation').checked;
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // Validate all fields
+            if (!month || !day || !year) {
+                errorDiv.textContent = 'Please select your complete date of birth.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!ageConfirmed) {
+                errorDiv.textContent = 'You must confirm you are 18 or older.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!guidelinesConfirmed) {
+                errorDiv.textContent = 'You must agree to the Community Guidelines.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Calculate age
+            const birthDate = new Date(year, month - 1, day);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            if (age < 18) {
+                errorDiv.textContent = 'You must be 18 or older to use this service.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Send age verification to server
+            fetch('/api/age-verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    birthdate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+                    confirmed: true
+                }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Store locally for UI purposes
+                    localStorage.setItem('ageVerified', 'true');
+                    localStorage.setItem('ageVerifiedDate', new Date().toISOString());
+                    
+                    // Redirect to main page
+                    window.location.href = '/';
+                } else {
+                    errorDiv.textContent = data.message || 'Age verification failed. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Age verification error:', error);
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            });
+        });
+
+        // Check if already verified
+        if (localStorage.getItem('ageVerified') === 'true') {
+            const verifiedDate = new Date(localStorage.getItem('ageVerifiedDate'));
+            const now = new Date();
+            
+            // Age verification expires after 30 days
+            if (now - verifiedDate < 30 * 24 * 60 * 60 * 1000) {
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>

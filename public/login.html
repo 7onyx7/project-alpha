@@ -2,14 +2,14 @@
 <!--****************** Date: 01/07/2025                          ******************-->
 <!--****************** Version: 1.0                              ******************-->
 <!--****************** Description: Authentication/Registration  ******************-->
-<!--****************** Project Name: PROJECT ALPHA               ******************-->
+<!--****************** Project Name: BANTRHAUS                   ******************-->
 
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - Project Alpha</title>
+    <title>Login - Bantrhaus</title>
     <!-- Regular JavaScript (fallback) -->
     <script src="scripts/scripts.js"></script> 
     <script src="scripts/csrf.js"></script>
@@ -25,12 +25,15 @@
   </head>
   <body>
     <div class="login-container">
-      <h2>Project Alpha</h2>
+      <h2>Bantrhaus</h2>
       <form id="loginForm">
         <input type="text" id="username" placeholder="Username" required />
         <input type="password" id="password" placeholder="Password" required />
         <p id="errorMessage">Invalid username or password.</p>
-        <button type="submit">Login</button>
+        <div class="login-actions">
+          <button type="submit">Login</button>
+          <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+        </div>
       </form>
       <p id="registerMessage">Don't have an account? Register here!</p>
       <button id="createAccountButton">Create Account</button>
@@ -63,6 +66,21 @@
           <button type="submit">Register</button>
         </form>
         <p id="registerError"></p>
+      </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal">
+      <div class="modal-content">
+        <button id="closeForgotModal" aria-label="Close">&times;</button>
+        
+        <h2>Reset Password</h2>
+        <p>Enter your email address below and we'll send you a link to reset your password.</p>
+        <form id="forgotPasswordForm">
+          <input type="email" id="resetEmail" placeholder="Email Address" required />
+          <button type="submit">Send Reset Link</button>
+        </form>
+        <p id="forgotPasswordMessage"></p>
       </div>
     </div>
   </body>

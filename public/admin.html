@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderation Dashboard - Bantrhaus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .reports-section {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .section-header h2 {
+            color: #495057;
+        }
+        
+        .reports-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .report-item {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            transition: background-color 0.2s;
+        }
+        
+        .report-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .report-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .report-reason {
+            background: #ffc107;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .report-content {
+            margin: 15px 0;
+        }
+        
+        .report-details {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background: #218838;
+        }
+        
+        .btn-reject {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #5a6268;
+        }
+        
+        .btn-ban {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-ban:hover {
+            background: #c82333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🛡️ Moderation Dashboard</h1>
+            <p>Monitor and manage user reports and community safety</p>
+        </div>
+        
+        <div class="alert alert-warning">
+            <strong>⚠️ Important:</strong> This is a basic moderation dashboard. For production use, implement proper authentication and authorization.
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <!-- Stats will be loaded here -->
+        </div>
+        
+        <div class="reports-section">
+            <div class="section-header">
+                <h2>Pending Reports</h2>
+                <button class="refresh-btn" onclick="loadReports()">🔄 Refresh</button>
+            </div>
+            <div class="reports-list" id="reportsList">
+                <div class="loading">Loading reports...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // XSS Protection function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadReports()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/moderation/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStats(data.stats);
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('statsGrid').innerHTML = '<div class="empty-state">Failed to load statistics</div>';
+            }
+        }
+        
+        // Display statistics
+        function displayStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Reports</h3>
+                    <div class="number">${stats.totalReports || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Reports</h3>
+                    <div class="number">${stats.pendingReports || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Resolved Reports</h3>
+                    <div class="number">${stats.resolvedReports || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Banned Users</h3>
+                    <div class="number">${stats.bannedUsers || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Users</h3>
+                    <div class="number">${stats.totalUsers || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Users</h3>
+                    <div class="number">${stats.activeUsers || 0}</div>
+                </div>
+            `;
+        }
+        
+        // Load reports
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/moderation/reports');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayReports(data.reports);
+                } else {
+                    document.getElementById('reportsList').innerHTML = '<div class="empty-state">Failed to load reports</div>';
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                document.getElementById('reportsList').innerHTML = '<div class="empty-state">Failed to load reports</div>';
+            }
+        }
+        
+        // Display reports
+        function displayReports(reports) {
+            const reportsList = document.getElementById('reportsList');
+            
+            if (reports.length === 0) {
+                reportsList.innerHTML = '<div class="empty-state">No pending reports</div>';
+                return;
+            }
+            
+            reportsList.innerHTML = reports.map(report => `
+                <div class="report-item">
+                    <div class="report-header">
+                        <div class="report-meta">
+                            <span>Reporter: ${escapeHtml(report.reporter_username || 'Anonymous')}</span>
+                            <span>Reported: ${escapeHtml(report.reported_username || 'Unknown')}</span>
+                            <span class="timestamp">${new Date(report.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="report-reason">${escapeHtml(report.reason)}</div>
+                    </div>
+                    <div class="report-content">
+                        <strong>Details:</strong>
+                        <div class="report-details">${report.content}</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-approve" onclick="handleReport(${report.id}, 'approved', false)">
+                            ✅ Approve
+                        </button>
+                        <button class="btn btn-reject" onclick="handleReport(${report.id}, 'rejected', false)">
+                            ❌ Reject
+                        </button>
+                        <button class="btn btn-ban" onclick="handleReport(${report.id}, 'approved', true)">
+                            🚫 Ban User
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Handle report action
+        async function handleReport(reportId, action, banUser) {
+            const moderatorNotes = prompt('Add moderator notes (optional):');
+            
+            try {
+                const response = await fetch(`/api/moderation/reports/${reportId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action,
+                        moderatorNotes,
+                        banUser,
+                        banDuration: banUser ? 24 : null // 24 hours ban
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`Report ${action} successfully!`);
+                    loadReports(); // Refresh the reports list
+                    loadStats(); // Refresh the statistics
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error handling report:', error);
+                alert('Error handling report. Please try again.');
+            }
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>
