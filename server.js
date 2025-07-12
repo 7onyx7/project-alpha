@@ -1231,3 +1231,32 @@ app.use((err, req, res, next) => {
     method: req.method,
     ip: req.ip
   });
+  
+  // Don't expose internal error details in production
+  const message = process.env.NODE_ENV === 'production' 
+    ? 'Internal server error'
+    : err.message;
+    
+  res.status(500).json({
+    success: false,
+    message: message
+  });
+});
+
+// Handle 404 errors
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
+/************************/
+/* START SERVER         */
+/************************/
+server.listen(port, () => {
+  logger.info(`🚀 Server running on port ${port}`);
+  logger.info(`🔒 Security systems initialized`);
+  logger.info(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
+});
