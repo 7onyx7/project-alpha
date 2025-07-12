@@ -29,9 +29,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Admin panel button click handler
   if (adminPanelButton) {
-    adminPanelButton.addEventListener('click', () => {
-      window.open('/admin/moderation', '_blank');
+    adminPanelButton.addEventListener('click', async () => {
+      try {
+        // Check if we have admin token
+        const hasAdminToken = document.cookie.includes('adminToken=');
+        
+        if (hasAdminToken) {
+          // Try to access admin panel directly
+          window.open('/admin/moderation', '_blank');
+        } else {
+          // Check if current user is admin and redirect to admin login
+          const isUserAdmin = await checkIfUserIsAdmin();
+          if (isUserAdmin) {
+            // User is admin but needs to login through admin panel
+            alert('Please login through the admin panel to access moderation features.');
+            window.open('/admin/login', '_blank');
+          } else {
+            alert('Access denied. You are not an administrator.');
+          }
+        }
+      } catch (error) {
+        console.error('Error accessing admin panel:', error);
+        alert('Error accessing admin panel. Please try again.');
+      }
     });
+  }
+
+  async function checkIfUserIsAdmin() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+      
+      const response = await fetch('/api/admin-status', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include'
+      });
+      const data = await response.json();
+      return data.isAdmin || false;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
   }
 
   function generateRandomUsername() {
@@ -419,18 +457,20 @@ async function checkAdminStatus() {
   try {
     const token = localStorage.getItem('token');
     const headers = { 'Content-Type': 'application/json' };
-    
+    // If token exists, set Authorization header
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+      // Also set cookie for server-side check (if not already set)
+      if (!document.cookie.includes('token=')) {
+        document.cookie = `token=${token}; path=/`;
+      }
     }
-    
     const response = await fetch('/api/admin-status', {
       headers,
       credentials: 'include' // Include cookies
     });
     const data = await response.json();
     isAdmin = data.isAdmin;
-    
     // Show/hide admin panel button
     const adminButton = document.getElementById('adminPanelButton');
     if (adminButton) {

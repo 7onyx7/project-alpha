@@ -607,6 +607,29 @@ const createSecurityTables = async (pool) => {
       )
     `);
     
+    // IP bans table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ip_bans (
+        id SERIAL PRIMARY KEY,
+        ip VARCHAR(45) NOT NULL,
+        reason TEXT,
+        banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE
+      )
+    `);
+    
+    // IP violations table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ip_violations (
+        id SERIAL PRIMARY KEY,
+        ip VARCHAR(45) NOT NULL,
+        violation_type VARCHAR(100) NOT NULL,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
     logger.info('Security tables created successfully');
   } catch (error) {
     logger.error('Failed to create security tables', { error: error.message });

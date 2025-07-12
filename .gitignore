@@ -66,3 +66,22 @@ temp/
 *.pem
 *.key
 *.crt
+
+# Development test files
+test-*.js
+*-test.js
+test_*.js
+*_test.js
+
+# Development log files
+*.log
+development-*.log
+debug-*.log
+
+# Audit files
+.audit.json
+*-audit.json
+
+# Log directory contents (but keep the directory structure)
+logs/*.log
+logs/application-*.log

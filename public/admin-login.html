@@ -242,9 +242,8 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Store token in cookie and redirect
-                    document.cookie = `adminToken=${result.token}; path=/; max-age=86400; secure; samesite=strict`;
-                    window.location.href = '/admin/moderation';
+                    // Admin login successful - redirect to admin panel
+                    window.location.href = result.redirectTo || '/admin/moderation';
                 } else {
                     // Show error
                     errorDiv.textContent = result.error || 'Login failed';

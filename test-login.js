@@ -107,22 +107,22 @@ async function testLogin() {
     }
     
     // Step 4: Check for missing tables that might cause other issues
-    console.log('\n📊 Step 4: Checking for banned_ips table');
+    console.log('\n📊 Step 4: Checking for ip_bans table');
     
     const tableExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = 'banned_ips'
+        AND table_name = 'ip_bans'
       );
     `);
     
     if (!tableExists.rows[0].exists) {
-      console.log('⚠️ The banned_ips table is missing');
+      console.log('⚠️ The ip_bans table is missing');
       console.log('   This might cause errors in the security middleware');
       console.log('   You should run setup-database.js to create all required tables');
     } else {
-      console.log('✅ banned_ips table exists');
+      console.log('✅ ip_bans table exists');
     }
     
     console.log('\n📝 Summary:');

@@ -144,10 +144,10 @@ async function checkDatabase() {
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'
-        AND table_name IN ('messages', 'password_reset_tokens', 'audit_log', 'banned_ips');
+        AND table_name IN ('messages', 'password_reset_tokens', 'audit_log', 'ip_bans');
       `);
       
-      const requiredTables = ['messages', 'password_reset_tokens', 'audit_log', 'banned_ips'];
+      const requiredTables = ['messages', 'password_reset_tokens', 'audit_log', 'ip_bans'];
       const foundTables = tablesCheck.rows.map(row => row.table_name);
       
       requiredTables.forEach(table => {
